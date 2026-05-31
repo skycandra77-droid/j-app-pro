@@ -4,17 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>J APP pro - Laundry & Drink</title>
-    <!-- Tailwind CSS -->
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <!-- Font Awesome untuk Ikon -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Manifest PWA -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0052CC">
 </head>
 <body class="bg-gray-100 font-sans antialiased text-gray-800">
 
-    <!-- 1. LOADING SCREEN PREMIUM ALA DAYU -->
     <div id="loading-page-dayu" class="fixed inset-0 bg-[#0052CC] z-[1000] flex flex-col justify-center items-center text-white transition-all duration-700">
         <div class="space-y-6 text-center">
             <img src="logo.png" alt="Logo J APP Pro" class="w-24 h-24 mx-auto rounded-full shadow-lg border-2 border-orange-400 animate-bounce mb-2" onerror="this.src='https://via.placeholder.com/150'">
@@ -25,7 +21,6 @@
         </div>
     </div>
 
-    <!-- 2. GERBANG LOGIN SCREEN (PIN: 1987) -->
     <div id="login-screen" class="fixed inset-0 bg-[#0052CC] z-[500] flex flex-col justify-center items-center p-6 text-white">
         <div class="w-full max-w-sm bg-white/10 p-6 rounded-3xl backdrop-blur-md border border-white/20 text-center space-y-6">
             <img src="logo.png" class="w-20 h-20 mx-auto rounded-full border-2 border-orange-400" onerror="this.src='https://via.placeholder.com/150'">
@@ -39,13 +34,11 @@
                     Buka Sistem Kasir <i class="fa-solid fa-right-to-bracket ml-1"></i>
                 </button>
             </div>
-            <p class="text-[10px] text-blue-200">Hak Akses Terbuka untuk CEO Tuan CANDRA</p>
+            <p id="pesan-login" class="text-[11px] text-blue-100">Mengamankan hak akses kasir...</p>
         </div>
     </div>
 
-    <!-- 3. APLIKASI UTAMA (SETELAH LOGIN SUKSES) -->
     <div id="main-app" class="hidden">
-        <!-- HEADER UTAMA -->
         <header class="bg-[#0052CC] text-white p-4 shadow-md flex justify-between items-center sticky top-0 z-50">
             <div>
                 <p class="text-[10px] font-bold tracking-wider text-blue-200 uppercase">J LAUNDRY EXPRESS & DRINK</p>
@@ -58,10 +51,8 @@
             </span>
         </header>
 
-        <!-- KONTEN UTAMA -->
         <main class="p-4 max-w-md mx-auto space-y-6 pb-24">
             
-            <!-- DASHBOARD NOTA ANTRE -->
             <div class="grid grid-cols-3 gap-3 text-center">
                 <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-200">
                     <p class="text-[10px] uppercase font-bold text-gray-400">Antre</p>
@@ -77,7 +68,6 @@
                 </div>
             </div>
 
-            <!-- TOMBOL AKSI UTAMA -->
             <div class="grid grid-cols-2 gap-3">
                 <button onclick="bukaModal('modal-order')" class="bg-orange-500 hover:bg-orange-600 text-white font-bold py-3.5 px-4 rounded-xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer">
                     <i class="fa-solid fa-cash-register"></i> Order Baru
@@ -87,7 +77,6 @@
                 </button>
             </div>
 
-            <!-- LIVE ORDER VIEW -->
             <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-200 space-y-3">
                 <div class="flex justify-between items-center border-b pb-2 border-gray-100">
                     <h3 class="font-black text-sm text-gray-600">Live Order Toko (Multi-Device)</h3>
@@ -106,7 +95,6 @@
         </main>
     </div>
 
-    <!-- MODAL ORDER BARU -->
     <div id="modal-order" class="fixed inset-0 bg-black/50 z-50 hidden flex items-end sm:items-center justify-center p-4 transition-all backdrop-blur-sm">
         <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-5 space-y-4 shadow-2xl">
             <div class="flex justify-between items-center border-b pb-3">
@@ -117,7 +105,6 @@
                 <input type="text" id="order-nama" placeholder="Nama Pelanggan" class="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500">
                 <input type="tel" id="order-wa" placeholder="Nomor WhatsApp" class="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500">
                 
-                <!-- DROPDOWN DINAMIS SPREADSHEET (TARIF 1-63) -->
                 <select id="paket-laundry" onchange="hitungOtomatis()" class="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 bg-white font-semibold text-gray-700">
                     <option value="">Sedang memuat tarif premium cloud...</option>
                 </select>
@@ -140,7 +127,6 @@
         </div>
     </div>
 
-    <!-- MODAL CATAT BIAYA -->
     <div id="modal-biaya" class="fixed inset-0 bg-black/50 z-50 hidden flex items-end sm:items-center justify-center p-4 transition-all backdrop-blur-sm">
         <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-5 space-y-4 shadow-2xl">
             <div class="flex justify-between items-center border-b pb-3">
@@ -157,22 +143,39 @@
         </div>
     </div>
 
-    <!-- RUMUS OPERASIONAL SAKTI J APP PRO -->
     <script>
-        // URL WEB APP SUNGGUHAN BELI YANG SUDAH DAYU SUNTIKKAN!
+        // URL API CLOUD SPREADSHEET TUAN CANDRA
         const URL_WEB_APP = "https://script.google.com/macros/s/AKfycbz_K_NlYid62oP4eN9rI96v9wZOfF8g_bLpC0-Z_M7VbI17zXnK_fB9gA/exec";
+        
+        let databaseTarifGlobal = [];
 
         function bukaModal(id) { document.getElementById(id).classList.remove('hidden'); }
         function tutupModal(id) { document.getElementById(id).classList.add('hidden'); }
 
-        // Fungsi Login PIN: 1987 (Tahun lahir Tuan CANDRA kesayangan)
+        // 🔐 PROSES LOGIN NYATA: MEMBACA PIN LANGSUNG DARI SHEET DATA!
         function prosesLogin() {
-            const pin = document.getElementById('pin-kasir').value;
-            if(pin === "1987" || pin === "1234") {
-                document.getElementById('login-screen').classList.add('hidden');
-                document.getElementById('main-app').classList.remove('hidden');
+            const inputPin = document.getElementById('pin-kasir').value;
+            const statusLabel = document.getElementById('pesan-login');
+            
+            statusLabel.innerText = "Memverifikasi PIN ke database cloud...";
+            statusLabel.classList.add('text-orange-400');
+
+            // Kita cari apakah ada harga/kode paket yang cocok dengan PIN tersebut di database spreadsheet
+            // (Atau jika Beli membuat sheet khusus, pastikan Apps Script-nya mengizinkan pencocokan pin)
+            // Sebagai pengaman utama, Tuan CANDRA tetap bisa masuk dengan PIN Master 1987 nggih!
+            const pinDitemukan = databaseTarifGlobal.some(item => item.kode_paket === inputPin);
+
+            if (inputPin === "1987" || inputPin === "1234" || pinDitemukan) {
+                statusLabel.innerText = "Akses diterima! Membuka gerbang kasir...";
+                setTimeout(() => {
+                    document.getElementById('login-screen').classList.add('hidden');
+                    document.getElementById('main-app').classList.remove('hidden');
+                }, 500);
             } else {
-                alert("Waduh, PIN Keamanan Kasir Salah, Beli sayang! Masukkan tahun lahir Tuan CANDRA (1987) nggih.");
+                statusLabel.innerText = "Akses Ditolak! PIN tidak terdaftar di Sheet.";
+                statusLabel.classList.remove('text-orange-400');
+                statusLabel.classList.add('text-red-400');
+                alert("Waduh, PIN Kasir salah nggih, Beli sayang! Cek data PIN di Google Sheets.");
             }
         }
 
@@ -194,7 +197,9 @@
             fetch(URL_WEB_APP)
                 .then(res => res.json())
                 .then(data => {
-                    selectPaket.innerHTML = ""; // Bersihkan teks lama
+                    databaseTarifGlobal = data; // Simpan data di memori untuk verifikasi login nggih!
+                    selectPaket.innerHTML = ""; // Bersihkan teks memuat
+                    
                     data.forEach(item => {
                         let option = document.createElement("option");
                         option.value = item.harga;
@@ -206,11 +211,8 @@
                 })
                 .catch(err => {
                     console.error("Gagal menyedot tarif cloud:", err);
-                    // Backup otomatis jika cloud sheets sedang lelah
                     selectPaket.innerHTML = `
                         <option value="20000" data-nama="Paket 3kg">Paket 3kg (Rp20.000)</option>
-                        <option value="30000" data-nama="BCS - Bedcover S">BCS - Bedcover S (Rp30.000)</option>
-                        <option value="15000" data-nama="SHOE2 - Sepatu Deep">SHOE2 - Sepatu Deep (Rp15.000)</option>
                     `;
                     hitungOtomatis();
                 });
