@@ -430,3 +430,20 @@ select {
         font-size: 28px;
     }
 }
+
+.btn-save {
+    background: linear-gradient(135deg, #FF9800, #F57C00) !important;
+    color: white !important;
+    font-size: 17px !important;
+    font-weight: 700 !important;
+    padding: 16px !important;
+    box-shadow: 0 6px 20px rgba(255, 152, 0, 0.4) !important;
+    margin-top: 15px !important;
+    border: 2px solid #fff3e0 !important;
+    letter-spacing: 0.5px;
+}
+
+.btn-save:active {
+    transform: scale(0.97);
+    box-shadow: 0 3px 10px rgba(255, 152, 0, 0.3) !important;
+}
