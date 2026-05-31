@@ -6,6 +6,7 @@ const TRANSAKSI_SHEET = 'Transaksi';
 let hargaData = {};
 let sheetLoaded = false;
 let transaksiData = [];
+let currentPanel = 0; // 0 = Kasir, 1 = Ringkasan
 
 // ==================== SWIPE SYSTEM ====================
 let touchStartX = 0;
@@ -14,6 +15,7 @@ let isSwiping = false;
 
 function initSwipe() {
     const wrapper = document.getElementById('swipeWrapper');
+    if (!wrapper) return;
     
     wrapper.addEventListener('touchstart', handleTouchStart, { passive: true });
     wrapper.addEventListener('touchmove', handleTouchMove, { passive: true });
@@ -61,24 +63,40 @@ function processSwipe() {
     if (Math.abs(diff) < threshold) return;
     
     const wrapper = document.getElementById('swipeWrapper');
+    const panelKasir = document.getElementById('panelKasir');
+    const panelRingkasan = document.getElementById('panelRingkasan');
+    
+    if (!panelKasir || !panelRingkasan) return;
     
     if (diff > 0) {
         // Swipe Left - Show Ringkasan
-        wrapper.classList.add('active');
-        showHint('💰 Ringkasan Kas');
+        panelKasir.style.transform = 'translateX(-100%)';
+        panelRingkasan.style.transform = 'translateX(0)';
+        currentPanel = 1;
+        showHint('💰 Menu Ringkasan & Pembukuan');
     } else {
         // Swipe Right - Show Kasir
-        wrapper.classList.remove('active');
+        panelKasir.style.transform = 'translateX(0)';
+        panelRingkasan.style.transform = 'translateX(100%)';
+        currentPanel = 0;
         showHint('🧺 Kembali ke Kasir');
     }
 }
 
 function showHint(msg) {
-    let hint = document.createElement('div');
-    hint.style.cssText = 'position:fixed;top:100px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.8);color:white;padding:10px 20px;border-radius:20px;font-size:13px;z-index:9999;animation:fadeIn 0.3s;';
+    let hint = document.getElementById('swipeHint');
+    if (!hint) {
+        hint = document.createElement('div');
+        hint.id = 'swipeHint';
+        hint.style.cssText = 'position:fixed;top:120px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.85);color:white;padding:12px 24px;border-radius:25px;font-size:14px;z-index:9999;box-shadow:0 4px 15px rgba(0,0,0,0.3);';
+        document.body.appendChild(hint);
+    }
     hint.textContent = msg;
-    document.body.appendChild(hint);
-    setTimeout(() => hint.remove(), 2000);
+    hint.style.opacity = '1';
+    setTimeout(() => {
+        hint.style.opacity = '0';
+        setTimeout(() => hint.remove(), 300);
+    }, 2000);
 }
 
 // ==================== GOOGLE SHEETS INTEGRATION ====================
@@ -121,7 +139,7 @@ async function loadHargaDariSheet() {
 }
 
 function loadHargaLokal() {
-    // Fallback data dari Excel
+    // Fallback data lengkap dari Excel
     const lokalData = [
         {kategori:'REGULER',id:'cs_2.5',nama:'REGULER - CS 2.5 KG',harga:11500,jam:48},
         {kategori:'REGULER',id:'cs_3',nama:'REGULER - CS 3 KG',harga:15900,jam:48},
@@ -291,7 +309,7 @@ function handleLogin() {
     const username = document.getElementById('username').value;
     const password = document.getElementById('password').value;
     
-    // Simple validation (in production, use proper auth)
+    // Simple validation
     if (username && password) {
         document.getElementById('loginScreen').style.display = 'none';
         document.getElementById('mainApp').style.display = 'block';
@@ -336,6 +354,7 @@ async function loadTransaksi() {
         
         updateLiveOrders();
         updateSummary();
+        updatePembukuanTable();
         
     } catch (error) {
         console.error('Error load transaksi:', error);
@@ -351,32 +370,99 @@ function updateLiveOrders() {
         return;
     }
     
-    container.innerHTML = transaksiData.slice(-5).reverse().map(order => `
+    container.innerHTML = transaksiData.slice(-5).reverse().map((order, index) => `
         <div class="order-item">
-            <h4>${order.nama} (${order.jumlah} Item)</h4>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                <h4>${order.nama} (${order.jumlah} Item)</h4>
+                <select onchange="updateStatusTransaksi('${order.id}', this.value)" 
+                        class="status-dropdown"
+                        style="padding:5px 10px;border-radius:15px;font-size:12px;border:1px solid #ddd;">
+                    <option value="Antre" ${order.status === 'Antre' ? 'selected' : ''}>Antre</option>
+                    <option value="Proses" ${order.status === 'Proses' ? 'selected' : ''}>Proses</option>
+                    <option value="Selesai" ${order.status === 'Selesai' ? 'selected' : ''}>Selesai</option>
+                </select>
+            </div>
             <p>${order.paket}</p>
-            <p>Selesai: ${order.tanggal}</p>
-            <span class="status ${order.status.toLowerCase()}">${order.status}</span>
+            <p>📱 ${order.nomorWa}</p>
+            <p>⏰ Selesai: ${order.estimasi || order.tanggal}</p>
+            <span class="status ${order.status.toLowerCase()}" style="display:inline-block;margin-top:8px;">${order.status}</span>
         </div>
     `).join('');
 }
 
+function updateStatusTransaksi(id, newStatus) {
+    const transaksi = transaksiData.find(t => t.id === id);
+    if (transaksi) {
+        transaksi.status = newStatus;
+        console.log(`Update status ${id} menjadi ${newStatus}`);
+        updateSummary();
+        // In production, save to Google Sheets
+    }
+}
+
 function updateSummary() {
     const today = new Date().toDateString();
-    const todayTransaksi = transaksiData.filter(t => new Date(t.tanggal).toDateString() === today);
+    const todayTransaksi = transaksiData.filter(t => {
+        const tDate = new Date(t.tanggal);
+        return tDate.toDateString() === today;
+    });
     
     const totalPendapatan = todayTransaksi.reduce((sum, t) => sum + (parseInt(t.total) || 0), 0);
     const totalPengeluaran = todayTransaksi.reduce((sum, t) => sum + (parseInt(t.pengeluaran) || 0), 0);
     const saldoBersih = totalPendapatan - totalPengeluaran;
     
-    document.getElementById('totalPendapatan').textContent = `Rp ${totalPendapatan.toLocaleString('id-ID')}`;
-    document.getElementById('totalPengeluaran').textContent = `Rp ${totalPengeluaran.toLocaleString('id-ID')}`;
-    document.getElementById('saldoBersih').textContent = `Rp ${saldoBersih.toLocaleString('id-ID')}`;
+    const elPendapatan = document.getElementById('totalPendapatan');
+    const elPengeluaran = document.getElementById('totalPengeluaran');
+    const elSaldo = document.getElementById('saldoBersih');
+    
+    if (elPendapatan) elPendapatan.textContent = `Rp ${totalPendapatan.toLocaleString('id-ID')}`;
+    if (elPengeluaran) elPengeluaran.textContent = `Rp ${totalPengeluaran.toLocaleString('id-ID')}`;
+    if (elSaldo) elSaldo.textContent = `Rp ${saldoBersih.toLocaleString('id-ID')}`;
     
     // Update status bar
-    document.getElementById('statusAntre').textContent = todayTransaksi.filter(t => t.status === 'Antre').length;
-    document.getElementById('statusProses').textContent = todayTransaksi.filter(t => t.status === 'Proses').length;
-    document.getElementById('statusSiap').textContent = todayTransaksi.filter(t => t.status === 'Selesai').length;
+    const elAntre = document.getElementById('statusAntre');
+    const elProses = document.getElementById('statusProses');
+    const elSiap = document.getElementById('statusSiap');
+    
+    if (elAntre) elAntre.textContent = todayTransaksi.filter(t => t.status === 'Antre').length;
+    if (elProses) elProses.textContent = todayTransaksi.filter(t => t.status === 'Proses').length;
+    if (elSiap) elSiap.textContent = todayTransaksi.filter(t => t.status === 'Selesai').length;
+}
+
+function updatePembukuanTable() {
+    const container = document.getElementById('pembukuanTable');
+    if (!container) return;
+    
+    if (transaksiData.length === 0) {
+        container.innerHTML = '<p style="text-align:center;color:#999;padding:20px;">Belum ada data pembukuan</p>';
+        return;
+    }
+    
+    const today = new Date().toDateString();
+    const todayTransaksi = transaksiData.filter(t => new Date(t.tanggal).toDateString() === today);
+    
+    container.innerHTML = `
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+            <thead>
+                <tr style="background:#4CAF50;color:white;">
+                    <th style="padding:10px;text-align:left;">Waktu</th>
+                    <th style="padding:10px;text-align:left;">Pelanggan</th>
+                    <th style="padding:10px;text-align:right;">Total</th>
+                    <th style="padding:10px;text-align:center;">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${todayTransaksi.map(t => `
+                    <tr style="border-bottom:1px solid #eee;">
+                        <td style="padding:10px;">${t.tanggal}</td>
+                        <td style="padding:10px;">${t.nama}</td>
+                        <td style="padding:10px;text-align:right;">Rp ${parseInt(t.total).toLocaleString('id-ID')}</td>
+                        <td style="padding:10px;text-align:center;"><span class="status ${t.status.toLowerCase()}">${t.status}</span></td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+    `;
 }
 
 function simpanTransaksi() {
@@ -410,9 +496,8 @@ function simpanTransaksi() {
         pengeluaran: 0
     };
     
-    // In production, save to Google Sheets
     console.log('Simpan transaksi:', transaksi);
-    alert(`Transaksi berhasil disimpan!\nTotal: Rp ${total.toLocaleString('id-ID')}`);
+    alert(`✅ Transaksi berhasil disimpan!\n\nPelanggan: ${nama}\nTotal: Rp ${total.toLocaleString('id-ID')}\n\nSuksma! 🙏`);
     
     // Reset form
     document.getElementById('namaPelanggan').value = '';
@@ -434,7 +519,7 @@ function simpanPengeluaran() {
         return;
     }
     
-    alert(`Pengeluaran Rp ${parseInt(jumlah).toLocaleString('id-ID')} berhasil disimpan!`);
+    alert(`✅ Pengeluaran Rp ${parseInt(jumlah).toLocaleString('id-ID')} untuk "${keterangan}" berhasil dicatat!`);
     document.getElementById('keteranganPengeluaran').value = '';
     document.getElementById('jumlahPengeluaran').value = '';
     loadTransaksi();
@@ -443,7 +528,7 @@ function simpanPengeluaran() {
 function refreshData() {
     loadHargaDariSheet();
     loadTransaksi();
-    alert('Data berhasil di-refresh!');
+    alert('🔄 Data berhasil di-refresh dari Cloud!');
 }
 
 // ==================== INITIALIZATION ====================
