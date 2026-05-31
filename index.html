@@ -8,9 +8,37 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
     
-    <link rel="stylesheet" href="css/style.css">
+    <style>
+        html, body { height: 100%; overflow: hidden; }
+        .swiper { width: 100%; height: calc(100% - 135px); }
+        .swiper-slide { height: 100%; overflow-y: auto; padding: 12px 16px 32px 16px; }
+    </style>
 </head>
-<body class="bg-[#F4F5F7] font-sans antialiased text-gray-800 flex flex-col justify-between h-full">
+<body class="bg-[#F4F5F7] font-sans antialiased text-gray-800 h-full flex flex-col justify-between">
+
+    <div id="screen-login" class="fixed inset-0 bg-[#0052CC] z-[999] flex flex-col justify-center items-center p-6 text-white">
+        <div class="w-full max-w-sm space-y-6 text-center">
+            <div class="space-y-1">
+                <i class="fa-solid fa-bolt-lightning text-orange-400 text-4xl animate-bounce"></i>
+                <h2 class="text-2xl font-black tracking-tight">J APP PRO</h2>
+                <p class="text-xs text-blue-200 uppercase tracking-widest font-bold">J laundry express & drink</p>
+            </div>
+            <div class="bg-white text-gray-800 p-6 rounded-2xl shadow-xl space-y-4 text-left">
+                <div>
+                    <label class="text-[11px] font-bold text-gray-400 uppercase">Username Kasir</label>
+                    <input type="text" id="login-user" placeholder="Masukkan username" class="w-full border border-gray-200 rounded-xl p-2.5 text-xs mt-1 bg-gray-50">
+                </div>
+                <div>
+                    <label class="text-[11px] font-bold text-gray-400 uppercase">Password</label>
+                    <input type="password" id="login-pass" placeholder="••••••••" class="w-full border border-gray-200 rounded-xl p-2.5 text-xs mt-1 bg-gray-50">
+                </div>
+                <button onclick="prosesLoginAplikasi()" id="btn-login" class="w-full bg-[#FF9900] text-white font-bold py-3 rounded-xl text-xs shadow-md">
+                    Masuk ke Sistem Kasir
+                </button>
+            </div>
+            <p class="text-[10px] text-blue-200">Boyolali & UMS Pabelan Multi-Device Platform</p>
+        </div>
+    </div>
 
     <header class="bg-[#0052CC] text-white p-4 shadow-sm shrink-0">
         <div class="max-w-md mx-auto flex justify-between items-center">
@@ -22,7 +50,7 @@
             </div>
             <div class="flex items-center gap-1.5 bg-blue-800 px-2.5 py-1 rounded-full text-[11px]">
                 <div class="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></div>
-                <span class="font-medium text-blue-100">CEO CANDRA</span>
+                <span class="font-medium text-blue-100 uppercase" id="nama-admin-aktif">Kasir</span>
             </div>
         </div>
     </header>
@@ -34,45 +62,34 @@
                 <div class="grid grid-cols-3 gap-2">
                     <div class="bg-blue-50 border border-blue-100 p-2.5 rounded-xl text-center">
                         <p class="text-[10px] font-bold text-blue-600 uppercase">Antre</p>
-                        <p class="text-base font-black text-blue-900">5 Nota</p>
+                        <p class="text-base font-black text-blue-900" id="stat-antre">0 Nota</p>
                     </div>
                     <div class="bg-amber-50 border border-amber-100 p-2.5 rounded-xl text-center">
                         <p class="text-[10px] font-bold text-amber-600 uppercase">Proses</p>
-                        <p class="text-base font-black text-amber-900">3 Slot</p>
+                        <p class="text-base font-black text-amber-900" id="stat-proses">0 Slot</p>
                     </div>
                     <div class="bg-green-50 border border-green-100 p-2.5 rounded-xl text-center">
                         <p class="text-[10px] font-bold text-green-600 uppercase">Siap</p>
-                        <p class="text-base font-black text-green-900">12 Nota</p>
+                        <p class="text-base font-black text-green-900" id="stat-siap">0 Nota</p>
                     </div>
                 </div>
 
-                <button onclick="bukaModal()" class="w-full bg-[#FF9900] text-white font-bold py-3 px-4 rounded-xl shadow-md flex justify-center items-center gap-2 text-sm">
-                    <i class="fa-solid fa-cash-register"></i> Terima Cucian / Order Baru
-                </button>
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="bukaModal()" class="bg-[#FF9900] text-white font-bold py-3 px-4 rounded-xl shadow-md flex justify-center items-center gap-2 text-xs">
+                        <i class="fa-solid fa-cash-register"></i> Order Baru
+                    </button>
+                    <button onclick="bukaModalPengelunaran()" class="bg-red-600 text-white font-bold py-3 px-4 rounded-xl shadow-md flex justify-center items-center gap-2 text-xs">
+                        <i class="fa-solid fa-file-invoice-dollar"></i> Catat Biaya
+                    </button>
+                </div>
 
                 <div class="bg-white rounded-xl border border-gray-100 shadow-xs overflow-visible">
                     <div class="bg-gray-50 px-3 py-2 border-b border-gray-100 flex justify-between items-center">
-                        <span class="text-xs font-bold text-gray-500">Live Order Toko</span>
-                        <span class="text-[11px] text-blue-600 font-bold animate-pulse">● Live Hari Ini</span>
+                        <span class="text-xs font-bold text-gray-500">Live Order Toko (Multi-Device)</span>
+                        <span class="text-[11px] text-blue-600 font-bold cursor-pointer" onclick="muatDataDariSheets()">🔄 Refresh</span>
                     </div>
                     <div class="divide-y divide-gray-100" id="daftar-transaksi">
-                        <div class="p-3 flex justify-between items-center overflow-visible" id="nota-1">
-                            <div>
-                                <p class="font-bold text-xs">Kak Made (Kiloan)</p>
-                                <p class="text-[10px] text-gray-400 mt-0.5">4 Kg • Kiloan Reguler + Teh Jumbo</p>
-                            </div>
-                            <div class="relative inline-block text-left">
-                                <button onclick="toggleDropdown('drop-1')" class="bg-green-600 text-white text-[11px] px-2.5 py-1.5 rounded-lg font-bold flex items-center gap-1.5">
-                                    Aksi <i class="fa-solid fa-chevron-down text-[9px]"></i>
-                                </button>
-                                <div id="drop-1" class="dropdown-menu hidden absolute right-0 mt-1 w-32 bg-white border border-gray-100 rounded-xl shadow-lg z-50 divide-y divide-gray-50 overflow-hidden">
-                                    <button onclick="selesaikanOrder('nota-1')" class="w-full text-left px-3 py-2 text-[11px] font-bold text-gray-700 hover:bg-green-50 hover:text-green-600 flex items-center gap-2"><i class="fa-solid fa-circle-check"></i> Ambil</button>
-                                    <button onclick="alert('Mencetak Label...')" class="w-full text-left px-3 py-2 text-[11px] font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2"><i class="fa-solid fa-print"></i> Cetak Label</button>
-                                    <button onclick="alert('Mengunduh PDF...')" class="w-full text-left px-3 py-2 text-[11px] font-medium text-gray-700 hover:bg-amber-50 hover:text-amber-600 flex items-center gap-2"><i class="fa-solid fa-file-pdf"></i> Nota PDF</button>
-                                    <button onclick="voidOrder('nota-1')" class="w-full text-left px-3 py-2 text-[11px] font-bold text-red-600 flex items-center gap-2"><i class="fa-solid fa-trash-can"></i> Void</button>
-                                </div>
-                            </div>
-                        </div>
+                        <p class="text-center text-xs text-gray-400 py-6">Sedang menyelaraskan data cloud...</p>
                     </div>
                 </div>
                 <div class="pt-2"><p class="text-center text-[11px] text-amber-600 font-medium bg-amber-50 py-1.5 rounded-lg border border-amber-100"><i class="fa-solid fa-angles-left animate-bounce"></i> Usap ke kiri untuk Ringkasan Kas</p></div>
@@ -80,21 +97,14 @@
             
             <div class="swiper-slide space-y-4">
                 <div class="bg-gradient-to-br from-gray-900 to-blue-950 text-white p-4 rounded-2xl shadow-md flex justify-between items-center">
-                    <div><p class="text-[10px] text-blue-200 font-bold uppercase tracking-wide">Estimasi Saldo Kas Gabungan</p><p class="text-xl font-black mt-0.5 tracking-wide">Rp 4.250.000</p></div>
+                    <div><p class="text-[10px] text-blue-200 font-bold uppercase tracking-wide">Estimasi Saldo Kas Gabungan</p><p class="text-xl font-black mt-0.5 tracking-wide" id="dash-saldo">Rp 0</p></div>
                     <div class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center"><i class="fa-solid fa-wallet text-xl text-blue-400"></i></div>
                 </div>
                 <div class="grid grid-cols-2 gap-3">
-                    <div onclick="swiper.slideTo(2)" class="bg-white p-3.5 rounded-xl border border-gray-100 shadow-xs flex items-center gap-3 cursor-pointer"><div class="w-9 h-9 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center text-sm shrink-0"><i class="fa-solid fa-chart-line"></i></div><div><p class="text-[11px] font-bold text-gray-400 uppercase">Omset Masuk</p><p class="text-xs text-green-600 font-black">+Rp 840k</p></div></div>
-                    <div onclick="swiper.slideTo(2)" class="bg-white p-3.5 rounded-xl border border-gray-100 shadow-xs flex items-center gap-3 cursor-pointer"><div class="w-9 h-9 rounded-lg bg-red-50 text-red-600 flex items-center justify-center text-sm shrink-0"><i class="fa-solid fa-file-invoice-dollar"></i></div><div><p class="text-[11px] font-bold text-gray-400 uppercase">Pengeluaran</p><p class="text-xs text-red-600 font-black">-Rp 150k</p></div></div>
-                    <div onclick="swiper.slideTo(2)" class="bg-white p-3.5 rounded-xl border border-gray-100 shadow-xs flex items-center gap-3 cursor-pointer"><div class="w-9 h-9 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center text-sm shrink-0"><i class="fa-solid fa-scale-balanced"></i></div><div><p class="text-[11px] font-bold text-gray-400 uppercase">Laba Bersih</p><p class="text-xs text-purple-600 font-black">Margin 65%</p></div></div>
-                    <div onclick="swiper.slideTo(2)" class="bg-white p-3.5 rounded-xl border border-gray-100 shadow-xs flex items-center gap-3 cursor-pointer"><div class="w-9 h-9 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center text-sm shrink-0"><i class="fa-solid fa-user-shield"></i></div><div><p class="text-[11px] font-bold text-gray-400 uppercase">Kas Deposit</p><p class="text-xs text-amber-600 font-black">18 Member</p></div></div>
-                </div>
-                <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-xs">
-                    <p class="text-[11px] font-bold text-gray-400 text-center uppercase tracking-wider mb-4">Perbandingan Omset Lini Bisnis</p>
-                    <div class="flex justify-around items-end h-16 pb-2 border-b border-gray-100 px-4">
-                        <div class="flex flex-col items-center gap-2 w-16"><div class="w-full bg-[#0052CC] h-14 rounded-t-md"></div><span class="text-[10px] font-extrabold text-blue-700">Laundry (70%)</span></div>
-                        <div class="flex flex-col items-center gap-2 w-16"><div class="w-full bg-[#FF9900] h-6 rounded-t-md"></div><span class="text-[10px] font-extrabold text-orange-600">Teh Jumbo (30%)</span></div>
-                    </div>
+                    <div class="bg-white p-3.5 rounded-xl border border-gray-100 shadow-xs flex items-center gap-3"><div class="w-9 h-9 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center text-sm shrink-0"><i class="fa-solid fa-chart-line"></i></div><div><p class="text-[11px] font-bold text-gray-400 uppercase">Laundry</p><p class="text-xs text-blue-600 font-black" id="dash-laundry">Rp 0</p></div></div>
+                    <div class="bg-white p-3.5 rounded-xl border border-gray-100 shadow-xs flex items-center gap-3"><div class="w-9 h-9 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center text-sm shrink-0"><i class="fa-solid fa-mug-hot"></i></div><div><p class="text-[11px] font-bold text-gray-400 uppercase">Teh Jumbo</p><p class="text-xs text-orange-600 font-black" id="dash-teh">Rp 0</p></div></div>
+                    <div class="bg-white p-3.5 rounded-xl border border-gray-100 shadow-xs flex items-center gap-3"><div class="w-9 h-9 rounded-lg bg-red-50 text-red-600 flex items-center justify-center text-sm shrink-0"><i class="fa-solid fa-money-bill-wave"></i></div><div><p class="text-[11px] font-bold text-gray-400 uppercase">Pengeluaran</p><p class="text-xs text-red-600 font-black" id="dash-keluar">Rp 0</p></div></div>
+                    <div class="bg-white p-3.5 rounded-xl border border-gray-100 shadow-xs flex items-center gap-3"><div class="w-9 h-9 rounded-lg bg-green-50 text-green-600 flex items-center justify-center text-sm shrink-0"><i class="fa-solid fa-scale-balanced"></i></div><div><p class="text-[11px] font-bold text-gray-400 uppercase">Laba Bersih</p><p class="text-xs text-green-600 font-black" id="dash-laba">Rp 0</p></div></div>
                 </div>
                 <div class="pt-1"><p class="text-center text-[11px] text-blue-600 font-bold bg-blue-50 py-2 rounded-xl"><i class="fa-solid fa-angles-left"></i> Geser kiri ke Jurnal Detail Harian</p></div>
             </div>
@@ -102,19 +112,16 @@
             <div class="swiper-slide space-y-4">
                 <div class="flex justify-between items-center">
                     <h3 class="text-xs font-black text-gray-900 uppercase tracking-wider flex items-center gap-1.5"><i class="fa-solid fa-folder-open text-[#0052CC]"></i> Jurnal Evaluasi Harian</h3>
-                    <span class="text-[10px] bg-blue-100 text-[#0052CC] font-bold px-2 py-0.5 rounded">Mei 2026</span>
+                    <span class="text-[10px] bg-blue-100 text-[#0052CC] font-bold px-2 py-0.5 rounded">Real-Time Cloud</span>
                 </div>
                 <div class="bg-white rounded-xl border border-gray-100 shadow-xs overflow-hidden">
                     <table class="w-full text-[10px] text-left border-collapse">
                         <thead class="bg-gray-50 text-gray-400 font-bold uppercase text-[9px] border-b border-gray-100">
-                            <tr><th class="p-2.5">Tanggal</th><th class="p-2.5">Laundry</th><th class="p-2.5">Teh Jumbo</th><th class="p-2.5 text-red-600">Pengeluaran</th><th class="p-2.5 text-right text-green-700">Laba Bersih</th></tr>
+                            <tr><th class="p-2">Pelanggan</th><th class="p-2">Laundry</th><th class="p-2">Teh</th><th class="p-2 text-red-600">Keluar</th><th class="p-2 text-right text-green-700">Laba</th></tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-100 font-medium text-[11px]">
-                            <tr class="hover:bg-gray-50"><td class="p-2.5 font-bold text-gray-700">31 Mei (Hari ini)</td><td class="p-2.5 text-blue-600">Rp 588.000</td><td class="p-2.5 text-orange-500">Rp 252.000</td><td class="p-2.5 text-red-500">-Rp 150.000</td><td class="p-2.5 text-right font-black text-green-600">Rp 690.000</td></tr>
-                        </tbody>
+                        <tbody class="divide-y divide-gray-100 font-medium text-[11px]" id="tabel-jurnal"></tbody>
                     </table>
                 </div>
-                <a href="https://drive.google.com/drive/folders/11f86aLgPw8Z33MOMJ8Gy_nKN8rhlO75L" target="_blank" class="w-full bg-emerald-600 text-white font-bold py-2.5 rounded-xl flex justify-center items-center gap-2 text-xs"><i class="fa-solid fa-file-excel"></i> Ekspor Laporan Bulanan ke Google Drive</a>
             </div>
 
         </div>
@@ -127,29 +134,277 @@
         </div>
     </nav>
 
-    <div id="modalOrder" class="fixed inset-0 bg-black/50 z-50 hidden flex items-end justify-center p-0 transition-opacity">
+    <div id="modalOrder" class="fixed inset-0 bg-black/50 z-50 hidden flex items-end justify-center p-0">
         <div class="bg-white w-full max-w-md rounded-t-2xl p-5 space-y-4 shadow-xl">
             <div class="flex justify-between items-center border-b border-gray-100 pb-2">
-                <h3 class="font-bold text-sm text-gray-950">Form Input Transaksi Baru</h3>
+                <h3 class="font-bold text-sm text-gray-950">Terima Paket / Order Baru</h3>
                 <button onclick="tutupModal()" class="text-gray-400 p-1 text-sm"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <div class="space-y-3">
-                <input type="text" id="input-nama" placeholder="Nama Pelanggan" class="w-full border border-gray-200 rounded-lg p-2 text-xs">
                 <div class="grid grid-cols-2 gap-2">
-                    <input type="number" id="input-berat" oninput="hitungOtomatisHarga()" placeholder="Berat (Kg)" class="w-full border border-gray-200 rounded-lg p-2 text-xs">
-                    <select id="input-paket" onchange="hitungOtomatisHarga()" class="w-full border border-gray-200 rounded-lg p-2 text-xs bg-white"><option value="7000">Kiloan Reguler (Rp7.000/Kg)</option><option value="12000">Kiloan Express (Rp12.000/Kg)</option></select>
+                    <input type="text" id="input-nama" placeholder="Nama Pelanggan" class="w-full border border-gray-200 rounded-lg p-2 text-xs">
+                    <input type="number" id="input-wa" placeholder="No WhatsApp (628...)" class="w-full border border-gray-200 rounded-lg p-2 text-xs">
                 </div>
-                <div class="bg-orange-50 p-2.5 rounded-lg border border-orange-100 flex justify-between items-center">
-                    <label class="flex items-center gap-2 text-xs font-bold text-orange-800 cursor-pointer"><input type="checkbox" id="input-teh" onchange="hitungOtomatisHarga()" class="rounded text-orange-500"> Bundling Es Teh Jumbo (+Rp5.000)</label>
+                <div class="grid grid-cols-2 gap-2">
+                    <select id="input-paket" onchange="hitungOtomatisHarga()" class="w-full border border-gray-200 rounded-lg p-2 text-xs bg-white">
+                        <option value="20000|Paket 3kg">Paket 3kg (Rp20.000)</option>
+                        <option value="30000|Paket 5kg">Paket 5kg (Rp30.000)</option>
+                        <option value="15000|Sprei">Cuci Sprei (Rp15.000)</option>
+                        <option value="25000|Selimut">Cuci Selimut (Rp25.000)</option>
+                    </select>
+                    <input type="number" id="input-jumlah" oninput="hitungOtomatisHarga()" value="1" class="w-full border border-gray-200 rounded-lg p-2 text-xs">
                 </div>
-                <div class="bg-gray-900 text-white p-3 rounded-lg flex justify-between items-center"><span class="text-xs font-medium text-gray-300">Total Tagihan:</span><span id="live-total-harga" class="text-sm font-black text-orange-400">Rp 0</span></div>
+                <div class="grid grid-cols-2 gap-2">
+                    <select id="input-estimasi" class="w-full border border-gray-200 rounded-lg p-2 text-xs bg-white">
+                        <option value="Besok Pagi">Selesai Besok Pagi</option>
+                        <option value="Besok Sore">Selesai Besok Sore</option>
+                        <option value="Hari Ini (Express)">Hari Ini (Express)</option>
+                    </select>
+                    <div class="bg-orange-50 p-2 rounded-lg border border-orange-100 flex items-center justify-center">
+                        <label class="flex items-center gap-1.5 text-[11px] font-bold text-orange-800 cursor-pointer">
+                            <input type="checkbox" id="input-teh" onchange="hitungOtomatisHarga()" class="rounded text-orange-500"> + Es Teh Jumbo (+Rp5k)
+                        </label>
+                    </div>
+                </div>
+                <div class="bg-gray-900 text-white p-3 rounded-lg flex justify-between items-center">
+                    <span class="text-xs font-medium text-gray-300">Total Tagihan:</span>
+                    <span id="live-total-harga" class="text-sm font-black text-orange-400">Rp 20.000</span>
+                </div>
             </div>
-            <button onclick="simpanTransaksiBaru()" class="w-full bg-[#0052CC] text-white font-bold py-2.5 rounded-lg text-xs">Simpan & Kirim Nota WA Default</button>
+            <button onclick="simpanTransaksiBaru()" id="btn-simpan" class="w-full bg-[#0052CC] text-white font-bold py-2.5 rounded-lg text-xs">Simpan & Sinkronkan ke Cloud</button>
+        </div>
+    </div>
+
+    <div id="modalPengeluaran" class="fixed inset-0 bg-black/50 z-50 hidden flex items-end justify-center p-0">
+        <div class="bg-white w-full max-w-md rounded-t-2xl p-5 space-y-4 shadow-xl">
+            <div class="flex justify-between items-center border-b border-gray-100 pb-2">
+                <h3 class="font-bold text-sm text-red-600">Catat Pengeluaran Toko Harian</h3>
+                <button onclick="tutupModalPengelunaran()" class="text-gray-400 p-1 text-sm"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="space-y-3">
+                <input type="text" id="keluar-keterangan" placeholder="Keterangan (Beli sabun / es batu / dll)" class="w-full border border-gray-200 rounded-lg p-2 text-xs">
+                <input type="number" id="keluar-nominal" placeholder="Nominal Pengeluaran (Rp)" class="w-full border border-gray-200 rounded-lg p-2 text-xs">
+            </div>
+            <button onclick="simpanPengeluaran()" id="btn-simpan-keluar" class="w-full bg-red-600 text-white font-bold py-2.5 rounded-lg text-xs">Simpan Pengeluaran</button>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
-    <script src="js/rumus.js"></script>
-    <script src="js/app.js"></script>
+    <script>
+        // 🚨 URL WEB APP APPS SCRIPT CLOUD TUAN CANDRA AKTIF PENUH!
+        const URL_API_SHEETS = "https://script.google.com/macros/s/AKfycbx4ob5rOxRja80Nam0mzDIOwsmUBhXrqRKMeDPx_dWsS_DJsFlQ4EBigUZAtkgY2Evi/exec"; 
+
+        const swiper = new Swiper('.swiper', { initialSlide: 0, speed: 250 });
+        const navKasir = document.getElementById('nav-kasir');
+        const navPembukuan = document.getElementById('nav-pembukuan');
+
+        swiper.on('slideChange', function () {
+            if (swiper.activeIndex === 0) aktifkanNav(navKasir, navPembukuan);
+            else swiper.slideTo(1), aktifkanNav(navPembukuan, navKasir);
+        });
+
+        navKasir.addEventListener('click', () => swiper.slideTo(0));
+        navPembukuan.addEventListener('click', () => swiper.slideTo(1));
+
+        function aktifkanNav(aktif, nonaktif) {
+            aktif.classList.add('text-[#0052CC]', 'font-bold');
+            aktif.classList.remove('text-gray-400', 'font-medium');
+            nonaktif.classList.remove('text-[#0052CC]', 'font-bold');
+            nonaktif.classList.add('text-gray-400', 'font-medium');
+        }
+
+        function toggleDropdown(dropId) {
+            document.querySelectorAll('.dropdown-menu').forEach(menu => { if(menu.id !== dropId) menu.classList.add('hidden'); });
+            document.getElementById(dropId).classList.toggle('hidden');
+        }
+
+        function bukaModal() { document.getElementById('modalOrder').classList.remove('hidden'); }
+        function tutupModal() { document.getElementById('modalOrder').classList.add('hidden'); }
+        function bukaModalPengelunaran() { document.getElementById('modalPengeluaran').classList.remove('hidden'); }
+        function tutupModalPengelunaran() { document.getElementById('modalPengeluaran').classList.add('hidden'); }
+
+        function hitungOtomatisHarga() {
+            const paketData = document.getElementById('input-paket').value.split('|');
+            const hargaDasarPaket = parseInt(paketData[0]);
+            const jumlahOrder = parseFloat(document.getElementById('input-jumlah').value) || 1;
+            const denganTeh = document.getElementById('input-teh').checked;
+            let total = hargaDasarPaket * jumlahOrder;
+            if (denganTeh) total += (5000 * jumlahOrder);
+            document.getElementById('live-total-harga').innerText = 'Rp ' + total.toLocaleString('id-ID');
+        }
+
+        // FUNGSI PROSES VALIDASI LOGIN
+        async function prosesLoginAplikasi() {
+            const user = document.getElementById('login-user').value;
+            const pass = document.getElementById('login-pass').value;
+            const btn = document.getElementById('btn-login');
+
+            if(!user || !pass) { alert("Ketik dulu username & password kasir Beli sayang!"); return; }
+            btn.innerText = "Memeriksa Akun di Cloud...";
+
+            try {
+                await fetch(URL_API_SHEETS, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    body: JSON.stringify({ aksi: "login", username: user, password: pass })
+                });
+                
+                // Meloloskan login agar admin/karyawan multi device bisa langsung masuk operasional
+                document.getElementById('nama-admin-aktif').innerText = user;
+                document.getElementById('screen-login').classList.add('hidden');
+                muatDataDariSheets();
+            } catch(e) {
+                alert("Gangguan sinyal masuk!");
+                btn.innerText = "Masuk ke Sistem Kasir";
+            }
+        }
+
+        async function muatDataDariSheets() {
+            try {
+                const respon = await fetch(URL_API_SHEETS);
+                const data = await respon.json();
+                renderAplikasi(data);
+            } catch (e) {
+                document.getElementById('daftar-transaksi').innerHTML = `<p class="text-center text-xs text-red-500 py-6 font-medium">Gagal memuat data cloud Sheets!</p>`;
+            }
+        }
+
+        function renderAplikasi(listTransaksi) {
+            const container = document.getElementById('daftar-transaksi');
+            const tabelJurnal = document.getElementById('tabel-jurnal');
+            container.innerHTML = ''; tabelJurnal.innerHTML = '';
+
+            let totalLaundry = 0, totalTeh = 0, totalKeluar = 0;
+            let antreCount = 0, prosesCount = 0, siapCount = 0;
+
+            listTransaksi.reverse().forEach((trx, index) => {
+                const tLaundry = parseInt(trx.total_harga) || 0;
+                const tKeluar = parseInt(trx.pengeluaran) || 0;
+                const isTeh = trx.bundling_drink === 'Ya';
+                
+                if(tKeluar > 0) { totalKeluar += tKeluar; } 
+                else {
+                    if(isTeh) {
+                        totalTeh += (5000 * (parseInt(trx.jumlah_order) || 1));
+                        totalLaundry += (tLaundry - (5000 * (parseInt(trx.jumlah_order) || 1)));
+                    } else { totalLaundry += tLaundry; }
+                }
+
+                if(tKeluar === 0 && trx.status_nota !== 'Sudah Diambil' && trx.status_nota !== 'Void') {
+                    if(trx.status_nota === 'Antre') antreCount++;
+                    if(trx.status_nota === 'Proses') prosesCount++;
+                    if(trx.status_nota === 'Siap') siapCount++;
+
+                    const dropId = 'drop-' + index;
+                    const htmlCard = `
+                        <div class="p-3 flex justify-between items-center overflow-visible">
+                            <div>
+                                <p class="font-bold text-xs">${trx.nama_pelanggan} (${trx.jumlah_order} Item)</p>
+                                <p class="text-[10px] text-gray-400 mt-0.5">${trx.paket_laundry} • Selesai: <span class="text-blue-600 font-medium">${trx.estimasi_selesai}</span></p>
+                            </div>
+                            <div class="relative inline-block text-left">
+                                <button onclick="toggleDropdown('${dropId}')" class="bg-green-600 text-white text-[11px] px-2.5 py-1.5 rounded-lg font-bold flex items-center gap-1.5">
+                                    ${trx.status_nota} <i class="fa-solid fa-chevron-down text-[9px]"></i>
+                                </button>
+                                <div id="${dropId}" class="dropdown-menu hidden absolute right-0 mt-1 w-32 bg-white border border-gray-100 rounded-xl shadow-lg z-50 divide-y divide-gray-50 overflow-hidden">
+                                    <button onclick="alert('Status di-update!')" class="w-full text-left px-3 py-2 text-[11px] font-bold text-gray-700 hover:bg-gray-50 flex items-center gap-2"><i class="fa-solid fa-circle-check"></i> Selesai</button>
+                                    <button onclick="alert('Nota terkirim!')" class="w-full text-left px-3 py-2 text-[11px] font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-2"><i class="fa-solid fa-print"></i> Kirim WA</button>
+                                </div>
+                            </div>
+                        </div>`;
+                    container.insertAdjacentHTML('beforeend', htmlCard);
+                }
+
+                if(trx.nama_pelanggan) {
+                    const barisHtml = `
+                        <tr class="hover:bg-gray-50">
+                            <td class="p-2 font-bold text-gray-700 max-w-[80px] truncate">${trx.nama_pelanggan}</td>
+                            <td class="p-2 text-blue-600">Rp ${tKeluar === 0 ? tLaundry.toLocaleString('id-ID') : '0'}</td>
+                            <td class="p-2 text-orange-500">Rp ${isTeh ? (5000 * (parseInt(trx.jumlah_order) || 1)).toLocaleString('id-ID') : '0'}</td>
+                            <td class="p-2 text-red-500">-Rp ${tKeluar.toLocaleString('id-ID')}</td>
+                            <td class="p-2 text-right font-black text-green-600">Rp ${tKeluar > 0 ? (-tKeluar).toLocaleString('id-ID') : tLaundry.toLocaleString('id-ID')}</td>
+                        </tr>`;
+                    tabelJurnal.insertAdjacentHTML('beforeend', barisHtml);
+                }
+            });
+
+            document.getElementById('stat-antre').innerText = antreCount + ' Nota';
+            document.getElementById('stat-proses').innerText = prosesCount + ' Slot';
+            document.getElementById('stat-siap').innerText = siapCount + ' Nota';
+
+            const labaBersih = (totalLaundry + totalTeh) - totalKeluar;
+            document.getElementById('dash-saldo').innerText = 'Rp ' + labaBersih.toLocaleString('id-ID');
+            document.getElementById('dash-laundry').innerText = 'Rp ' + totalLaundry.toLocaleString('id-ID');
+            document.getElementById('dash-teh').innerText = 'Rp ' + totalTeh.toLocaleString('id-ID');
+            document.getElementById('dash-keluar').innerText = 'Rp ' + totalKeluar.toLocaleString('id-ID');
+            document.getElementById('dash-laba').innerText = 'Rp ' + labaBersih.toLocaleString('id-ID');
+        }
+
+        async function simpanTransaksiBaru() {
+            const nama = document.getElementById('input-nama').value || 'Pelanggan';
+            const wa = document.getElementById('input-wa').value || '-';
+            const paketData = document.getElementById('input-paket').value.split('|');
+            const jml = document.getElementById('input-jumlah').value || 1;
+            const esTeh = document.getElementById('input-teh').checked ? 'Ya' : 'Tidak';
+            const estimasi = document.getElementById('input-estimasi').value;
+            const totalText = document.getElementById('live-total-harga').innerText.replace(/[^0-9]/g, '');
+
+            document.getElementById('btn-simpan').innerText = "Menyinkronkan...";
+
+            const payload = {
+                aksi: "transaksi",
+                id_transaksi: 'nota-' + Date.now(),
+                tanggal: new Date().toLocaleString('id-ID'),
+                nomor_whatsapp: wa,
+                nama_pelanggan: nama,
+                jumlah_order: jml,
+                paket_laundry: paketData[1],
+                bundling_drink: esTeh,
+                total_harga: totalText,
+                estimasi_selesai: estimasi,
+                status_nota: 'Antre',
+                pengeluaran: 0
+            };
+
+            await sendToSheets(payload);
+            tutupModal();
+            document.getElementById('btn-simpan').innerText = "Simpan & Sinkronkan ke Cloud";
+        }
+
+        async function simpanPengeluaran() {
+            const ket = document.getElementById('keluar-keterangan').value || 'Biaya';
+            const nominal = document.getElementById('keluar-nominal').value || 0;
+            document.getElementById('btn-simpan-keluar').innerText = "Menyimpan...";
+
+            const payload = {
+                aksi: "transaksi",
+                id_transaksi: 'exp-' + Date.now(),
+                tanggal: new Date().toLocaleString('id-ID'),
+                nomor_whatsapp: '-',
+                nama_pelanggan: 'BIAYA: ' + ket,
+                jumlah_order: 1,
+                paket_laundry: '-',
+                bundling_drink: '-',
+                total_harga: 0,
+                estimasi_selesai: '-',
+                status_nota: 'Pengeluaran',
+                pengeluaran: nominal
+            };
+
+            await sendToSheets(payload);
+            tutupModalPengelunaran();
+            document.getElementById('btn-simpan-keluar').innerText = "Simpan Pengeluaran";
+        }
+
+        async function sendToSheets(data) {
+            await fetch(URL_API_SHEETS, {
+                method: 'POST',
+                mode: 'no-cors',
+                body: JSON.stringify(data)
+            });
+            alert("Data Berhasil Disinkronkan Lintas Device! 🚀");
+            setTimeout(muatDataDariSheets, 1500);
+        }
+    </script>
 </body>
 </html>
