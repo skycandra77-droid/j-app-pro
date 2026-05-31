@@ -1,0 +1,17 @@
+{
+  "short_name": "J APP pro",
+  "name": "J APP Pro - Laundry Express & Drink",
+  "icons": [
+    {
+      "src": "logo.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/j-app-pro/index.html",
+  "background_color": "#0052CC",
+  "theme-color": "#0052CC",
+  "display": "standalone",
+  "orientation": "portrait"
+}
