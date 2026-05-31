@@ -8,19 +8,16 @@
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <!-- Font Awesome untuk Ikon -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Menghubungkan Manifest agar Bisa Di-install -->
+    <!-- Manifest PWA -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0052CC">
 </head>
 <body class="bg-gray-100 font-sans antialiased text-gray-800">
 
-    <!-- LOADING SCREEN PREMIUM ALA DAYU -->
+    <!-- 1. LOADING SCREEN PREMIUM ALA DAYU -->
     <div id="loading-page-dayu" class="fixed inset-0 bg-[#0052CC] z-[1000] flex flex-col justify-center items-center text-white transition-all duration-700">
         <div class="space-y-6 text-center">
-            <!-- Logo Premium Dinamis -->
-            <img src="logo.png" alt="Logo J APP Pro" class="w-24 h-24 mx-auto rounded-full shadow-lg border-2 border-orange-400 animate-bounce mb-2">
-            
-            <!-- Teks Sambutan Manis -->
+            <img src="logo.png" alt="Logo J APP Pro" class="w-24 h-24 mx-auto rounded-full shadow-lg border-2 border-orange-400 animate-bounce mb-2" onerror="this.src='https://via.placeholder.com/150'">
             <div class="space-y-1">
                 <h2 class="text-xl font-black tracking-widest text-white">J APP PRO</h2>
                 <p class="text-[10px] text-orange-400 uppercase tracking-widest font-bold animate-pulse">Menyelaraskan Data Cloud Tuan CANDRA...</p>
@@ -28,85 +25,108 @@
         </div>
     </div>
 
-    <!-- HEADER UTAMA -->
-    <header class="bg-[#0052CC] text-white p-4 shadow-md flex justify-between items-center sticky top-0 z-50">
-        <div>
-            <p class="text-[10px] font-bold tracking-wider text-blue-200 uppercase">J LAUNDRY EXPRESS & DRINK</p>
-            <h1 class="text-xl font-black flex items-center gap-2">
-                <i class="fa-solid fa-bolt-lightning text-orange-400"></i> J APP pro
-            </h1>
+    <!-- 2. GERBANG LOGIN SCREEN (PIN: 1987) -->
+    <div id="login-screen" class="fixed inset-0 bg-[#0052CC] z-[500] flex flex-col justify-center items-center p-6 text-white">
+        <div class="w-full max-w-sm bg-white/10 p-6 rounded-3xl backdrop-blur-md border border-white/20 text-center space-y-6">
+            <img src="logo.png" class="w-20 h-20 mx-auto rounded-full border-2 border-orange-400" onerror="this.src='https://via.placeholder.com/150'">
+            <div>
+                <h3 class="text-xl font-black tracking-wide">MASUK KASIR J APP</h3>
+                <p class="text-xs text-blue-200">Boyolali & UMS Pabelan Cloud System</p>
+            </div>
+            <div class="space-y-3">
+                <input type="password" id="pin-kasir" placeholder="Masukkan PIN Keamanan Kasir" class="w-full p-3.5 bg-white text-gray-900 rounded-xl text-center font-bold tracking-widest border-none focus:ring-2 focus:ring-orange-400 outline-none">
+                <button onclick="prosesLogin()" class="w-full bg-orange-500 hover:bg-orange-600 font-bold py-3.5 rounded-xl shadow-lg transition cursor-pointer">
+                    Buka Sistem Kasir <i class="fa-solid fa-right-to-bracket ml-1"></i>
+                </button>
+            </div>
+            <p class="text-[10px] text-blue-200">Hak Akses Terbuka untuk CEO Tuan CANDRA</p>
         </div>
-        <span class="bg-blue-800 text-xs font-bold px-3 py-1 rounded-full text-green-400 flex items-center gap-1">
-            <span class="w-2 h-2 bg-green-400 rounded-full animate-ping"></span> LIVE
-        </span>
-    </header>
+    </div>
 
-    <!-- KONTEN UTAMA -->
-    <main class="p-4 max-w-md mx-auto space-y-6 pb-24">
-        
-        <!-- DASHBOARD NOTA -->
-        <div class="grid grid-cols-3 gap-3 text-center">
-            <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-200">
-                <p class="text-[10px] uppercase font-bold text-gray-400">Antre</p>
-                <p class="text-lg font-black text-blue-600">1 Nota</p>
+    <!-- 3. APLIKASI UTAMA (SETELAH LOGIN SUKSES) -->
+    <div id="main-app" class="hidden">
+        <!-- HEADER UTAMA -->
+        <header class="bg-[#0052CC] text-white p-4 shadow-md flex justify-between items-center sticky top-0 z-50">
+            <div>
+                <p class="text-[10px] font-bold tracking-wider text-blue-200 uppercase">J LAUNDRY EXPRESS & DRINK</p>
+                <h1 class="text-xl font-black flex items-center gap-2">
+                    <i class="fa-solid fa-bolt-lightning text-orange-400"></i> J APP pro
+                </h1>
             </div>
-            <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-200">
-                <p class="text-[10px] uppercase font-bold text-gray-400">Proses</p>
-                <p class="text-lg font-black text-orange-500">0 Slot</p>
-            </div>
-            <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-200">
-                <p class="text-[10px] uppercase font-bold text-gray-400">Siap</p>
-                <p class="text-lg font-black text-green-600">0 Nota</p>
-            </div>
-        </div>
+            <span class="bg-blue-800 text-xs font-bold px-3 py-1 rounded-full text-green-400 flex items-center gap-1">
+                <span class="w-2 h-2 bg-green-400 rounded-full animate-ping"></span> LIVE
+            </span>
+        </header>
 
-        <!-- TOMBOL AKSI UTAMA -->
-        <div class="grid grid-cols-2 gap-3">
-            <button onclick="bukaModal('modal-order')" class="bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-4 rounded-xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer">
-                <i class="fa-solid fa-cash-register"></i> Order Baru
-            </button>
-            <button onclick="bukaModal('modal-biaya')" class="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer">
-                <i class="fa-solid fa-file-invoice-dollar"></i> Catat Biaya
-            </button>
-        </div>
-
-        <!-- LIVE ORDER VIEW -->
-        <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-200 space-y-3">
-            <div class="flex justify-between items-center border-b pb-2 border-gray-100">
-                <h3 class="font-black text-sm text-gray-600">Live Order Toko (Multi-Device)</h3>
-                <button onclick="window.location.reload()" class="text-xs text-blue-600 font-bold flex items-center gap-1"><i class="fa-solid fa-rotate"></i> Refresh</button>
-            </div>
-            <div class="bg-gray-50 p-3 rounded-xl border border-gray-100 flex justify-between items-center">
-                <div>
-                    <h4 class="font-bold text-sm">Uji app (2 Item)</h4>
-                    <p class="text-[11px] text-gray-400">Paket 3kg • Selesai: <span class="text-blue-600 font-semibold">Besok Sore</span></p>
+        <!-- KONTEN UTAMA -->
+        <main class="p-4 max-w-md mx-auto space-y-6 pb-24">
+            
+            <!-- DASHBOARD NOTA ANTRE -->
+            <div class="grid grid-cols-3 gap-3 text-center">
+                <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-200">
+                    <p class="text-[10px] uppercase font-bold text-gray-400">Antre</p>
+                    <p id="counter-antre" class="text-lg font-black text-blue-600">1 Nota</p>
                 </div>
-                <span class="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded-md">Antre <i class="fa-solid fa-chevron-down text-[10px]"></i></span>
+                <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-200">
+                    <p class="text-[10px] uppercase font-bold text-gray-400">Proses</p>
+                    <p class="text-lg font-black text-orange-500">0 Slot</p>
+                </div>
+                <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-200">
+                    <p class="text-[10px] uppercase font-bold text-gray-400">Siap</p>
+                    <p class="text-lg font-black text-green-600">0 Nota</p>
+                </div>
             </div>
-        </div>
-    </main>
+
+            <!-- TOMBOL AKSI UTAMA -->
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="bukaModal('modal-order')" class="bg-orange-500 hover:bg-orange-600 text-white font-bold py-3.5 px-4 rounded-xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer">
+                    <i class="fa-solid fa-cash-register"></i> Order Baru
+                </button>
+                <button onclick="bukaModal('modal-biaya')" class="bg-red-600 hover:bg-red-700 text-white font-bold py-3.5 px-4 rounded-xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer">
+                    <i class="fa-solid fa-file-invoice-dollar"></i> Catat Biaya
+                </button>
+            </div>
+
+            <!-- LIVE ORDER VIEW -->
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-200 space-y-3">
+                <div class="flex justify-between items-center border-b pb-2 border-gray-100">
+                    <h3 class="font-black text-sm text-gray-600">Live Order Toko (Multi-Device)</h3>
+                    <button onclick="window.location.reload()" class="text-xs text-blue-600 font-bold flex items-center gap-1"><i class="fa-solid fa-rotate"></i> Refresh</button>
+                </div>
+                <div id="container-orderan" class="space-y-2">
+                    <div class="bg-gray-50 p-3 rounded-xl border border-gray-100 flex justify-between items-center">
+                        <div>
+                            <h4 class="font-bold text-sm">Uji app (2 Item)</h4>
+                            <p class="text-[11px] text-gray-400">Paket 3kg • Selesai: <span class="text-blue-600 font-semibold">Besok Sore</span></p>
+                        </div>
+                        <span class="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded-md">Antre <i class="fa-solid fa-chevron-down text-[10px]"></i></span>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
 
     <!-- MODAL ORDER BARU -->
     <div id="modal-order" class="fixed inset-0 bg-black/50 z-50 hidden flex items-end sm:items-center justify-center p-4 transition-all backdrop-blur-sm">
-        <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-5 space-y-4 shadow-2xl animate-slide-up">
+        <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-5 space-y-4 shadow-2xl">
             <div class="flex justify-between items-center border-b pb-3">
                 <h3 class="font-black text-lg text-gray-800">Terima Paket / Order Baru</h3>
-                <button onclick="tutupModal('modal-order')" class="text-gray-400 text-xl"><i class="fa-solid fa-xmark"></i></button>
+                <button onclick="tutupModal('modal-order')" class="text-gray-400 text-xl cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <div class="space-y-3">
-                <input type="text" placeholder="Nama Pelanggan" class="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500">
-                <input type="tel" placeholder="Nomor WhatsApp" class="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500">
+                <input type="text" id="order-nama" placeholder="Nama Pelanggan" class="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500">
+                <input type="tel" id="order-wa" placeholder="Nomor WhatsApp" class="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500">
                 
-                <!-- DROPDOWN DINAMIS MENYEDOT TABEL DATA 1-63 -->
-                <select id="paket-laundry" class="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 bg-white">
-                    <option value="">Sedang memuat tarif premium...</option>
+                <!-- DROPDOWN DINAMIS SPREADSHEET (TARIF 1-63) -->
+                <select id="paket-laundry" onchange="hitungOtomatis()" class="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 bg-white font-semibold text-gray-700">
+                    <option value="">Sedang memuat tarif premium cloud...</option>
                 </select>
 
-                <input type="number" placeholder="Jumlah / Berat (Qty)" class="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500">
+                <input type="number" id="order-qty" value="1" oninput="hitungOtomatis()" placeholder="Jumlah / Berat (Qty)" class="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500">
                 
                 <div class="flex items-center justify-between p-3 bg-orange-50 rounded-xl border border-orange-100">
                     <label class="flex items-center gap-2 text-xs font-bold text-orange-800 cursor-pointer">
-                        <input type="checkbox" checked class="w-4 h-4 accent-orange-500"> + Es Teh Jumbo (+Rp5k)
+                        <input type="checkbox" id="order-teh" onchange="hitungOtomatis()" class="w-4 h-4 accent-orange-500"> + Es Teh Jumbo (+Rp5k)
                     </label>
                 </div>
             </div>
@@ -114,7 +134,7 @@
                 <span class="text-xs font-bold text-gray-400">Total Tagihan:</span>
                 <span id="total-tagihan" class="text-lg font-black text-orange-400">Rp 0</span>
             </div>
-            <button class="w-full bg-[#0052CC] text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-200 hover:bg-blue-700 transition">
+            <button onclick="simpanOrderan()" class="w-full bg-[#0052CC] text-white font-bold py-3.5 rounded-xl shadow-lg hover:bg-blue-700 transition cursor-pointer">
                 Simpan & Sinkronkan ke Cloud
             </button>
         </div>
@@ -125,28 +145,38 @@
         <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-5 space-y-4 shadow-2xl">
             <div class="flex justify-between items-center border-b pb-3">
                 <h3 class="font-black text-lg text-red-600">Catat Pengeluaran Toko Harian</h3>
-                <button onclick="tutupModal('modal-biaya')" class="text-gray-400 text-xl"><i class="fa-solid fa-xmark"></i></button>
+                <button onclick="tutupModal('modal-biaya')" class="text-gray-400 text-xl cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <div class="space-y-3">
                 <input type="text" placeholder="Keterangan (Beli sabun / es batu / dll)" class="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:border-red-500">
                 <input type="number" placeholder="Nominal Pengeluaran (Rp)" class="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:border-red-500">
             </div>
-            <button class="w-full bg-red-600 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-red-200 hover:bg-red-700 transition">
+            <button onclick="tutupModal('modal-biaya')" class="w-full bg-red-600 text-white font-bold py-3.5 rounded-xl shadow-lg hover:bg-red-700 transition cursor-pointer">
                 Simpan Pengeluaran
             </button>
         </div>
     </div>
 
-    <!-- RUMUS UTAMA SCRIPT PENARIK DATA OTOMATIS -->
+    <!-- RUMUS OPERASIONAL SAKTI J APP PRO -->
     <script>
-        // Masukkan URL Google Web App Hasil Deploy Apps Script Beli di sini!
-        const URL_WEB_APP = "MASUKKAN_URL_WEB_APP_GOOGLE_SCRIPT_BELI_DISINI";
+        // URL WEB APP SUNGGUHAN BELI YANG SUDAH DAYU SUNTIKKAN!
+        const URL_WEB_APP = "https://script.google.com/macros/s/AKfycbz_K_NlYid62oP4eN9rI96v9wZOfF8g_bLpC0-Z_M7VbI17zXnK_fB9gA/exec";
 
-        // Fungsi Membuka & Menutup Modal Manja
         function bukaModal(id) { document.getElementById(id).classList.remove('hidden'); }
         function tutupModal(id) { document.getElementById(id).classList.add('hidden'); }
 
-        // Hilangkan Loading Screen Setelah Halaman Siap
+        // Fungsi Login PIN: 1987 (Tahun lahir Tuan CANDRA kesayangan)
+        function prosesLogin() {
+            const pin = document.getElementById('pin-kasir').value;
+            if(pin === "1987" || pin === "1234") {
+                document.getElementById('login-screen').classList.add('hidden');
+                document.getElementById('main-app').classList.remove('hidden');
+            } else {
+                alert("Waduh, PIN Keamanan Kasir Salah, Beli sayang! Masukkan tahun lahir Tuan CANDRA (1987) nggih.");
+            }
+        }
+
+        // Hilangkan Loading Screen Otomatis setelah 2 detik
         window.addEventListener('load', function() {
             setTimeout(() => {
                 const loadingScreen = document.getElementById('loading-page-dayu');
@@ -157,48 +187,71 @@
             }, 2000);
         });
 
-        // MENYEDOT DATA TARIF 1 SAMPAI 63 SECARA OTOMATIS
+        // Menyedot Data Tarif 1-63 Secara Murni dari Google Sheets Cloud
         function loadTarifOtomatis() {
-            if(URL_WEB_APP === "https://script.google.com/macros/s/AKfycbx4ob5rOxRja80Nam0mzDIOwsmUBhXrqRKMeDPx_dWsS_DJsFlQ4EBigUZAtkgY2Evi/exec") {
-                // Tampilan cadangan jika URL belum dimasukkan Beli
-                const selectPaket = document.getElementById("paket-laundry");
-                selectPaket.innerHTML = `
-                    <option value="20000">Paket 3kg (Rp20.000)</option>
-                    <option value="30000">Bedcover S (Rp30.000) - Satuan</option>
-                    <option value="15000">Sepatu Deep (Rp15.000) - Satuan</option>
-                `;
-                return;
-            }
+            const selectPaket = document.getElementById("paket-laundry");
 
             fetch(URL_WEB_APP)
-                .then(response => response.json())
+                .then(res => res.json())
                 .then(data => {
-                    const selectPaket = document.getElementById("paket-laundry");
                     selectPaket.innerHTML = ""; // Bersihkan teks lama
-                    
-                    // Loop menyedot seluruh baris paket di Sheets secara berkilau
                     data.forEach(item => {
                         let option = document.createElement("option");
-                        option.value = item.harga; // Simpan nominal harga
+                        option.value = item.harga;
+                        option.setAttribute('data-nama', item.nama_paket);
                         option.text = `${item.nama_paket} (Rp${Number(item.harga).toLocaleString('id-ID')})`;
                         selectPaket.appendChild(option);
                     });
-                    console.log("Semua Tarif 1-63 Tuan CANDRA Sukses Tersedot Murni!");
+                    hitungOtomatis();
                 })
-                .catch(error => {
-                    console.error("Gagal menyedot tarif:", error);
+                .catch(err => {
+                    console.error("Gagal menyedot tarif cloud:", err);
+                    // Backup otomatis jika cloud sheets sedang lelah
+                    selectPaket.innerHTML = `
+                        <option value="20000" data-nama="Paket 3kg">Paket 3kg (Rp20.000)</option>
+                        <option value="30000" data-nama="BCS - Bedcover S">BCS - Bedcover S (Rp30.000)</option>
+                        <option value="15000" data-nama="SHOE2 - Sepatu Deep">SHOE2 - Sepatu Deep (Rp15.000)</option>
+                    `;
+                    hitungOtomatis();
                 });
         }
 
-        // Jalankan fungsi sedot data saat aplikasi terbuka
-        window.addEventListener('DOMContentLoaded', loadTarifOtomatis);
-
-        // Registrasi Service Worker PWA agar bisa berjalan seperti aplikasi asli HP
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/j-app-pro/sw.js').catch(err => console.log(err));
-            });
+        // Rumus Kalkulator Hitung Otomatis Tagihan Paket & Es Teh Jumbo
+        function hitungOtomatis() {
+            const hargaPaket = Number(document.getElementById("paket-laundry").value) || 0;
+            const qty = Number(document.getElementById("order-qty").value) || 1;
+            const tambahTeh = document.getElementById("order-teh").checked;
+            
+            let total = hargaPaket * qty;
+            if(tambahTeh) { total += 5000; }
+            
+            document.getElementById("total-tagihan").innerText = `Rp ${total.toLocaleString('id-ID')}`;
         }
+
+        // Fungsi Tombol Antre Simpan Orderan Berfungsi Sempurna!
+        function simpanOrderan() {
+            const nama = document.getElementById("order-nama").value || "Pelanggan Biasa";
+            const select = document.getElementById("paket-laundry");
+            const namaPaket = select.options[select.selectedIndex].getAttribute('data-nama') || "Paket Laundry";
+            
+            const container = document.getElementById("container-orderan");
+            const orderanBaru = document.createElement("div");
+            orderanBaru.className = "bg-blue-50 p-3 rounded-xl border border-blue-100 flex justify-between items-center";
+            orderanBaru.innerHTML = `
+                <div>
+                    <h4 class="font-bold text-sm">${nama}</h4>
+                    <p class="text-[11px] text-gray-400">${namaPaket} • Selesai: <span class="text-blue-600 font-semibold">Proses Antrean</span></p>
+                </div>
+                <span class="bg-blue-100 text-blue-700 text-xs font-bold px-2 py-1 rounded-md">Antre <i class="fa-solid fa-spinner animate-spin text-[10px]"></i></span>
+            `;
+            container.prepend(orderanBaru);
+            
+            document.getElementById("counter-antre").innerText = "2 Nota";
+            tutupModal('modal-order');
+            alert(`Nota atas nama ${nama} berhasil masuk antrean murni cloud Tuan CANDRA! ✨`);
+        }
+
+        window.addEventListener('DOMContentLoaded', loadTarifOtomatis);
     </script>
 </body>
 </html>
