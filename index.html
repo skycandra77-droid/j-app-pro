@@ -15,6 +15,51 @@
     </style>
 </head>
 <body class="bg-[#F4F5F7] font-sans antialiased text-gray-800 h-full flex flex-col justify-between">
+<div id="loading-page-dayu" class="fixed inset-0 bg-[#0052CC] z-[1000] flex flex-col justify-center items-center text-white transition-all duration-700">
+    <div class="space-y-6 text-center">
+        <div class="relative w-20 h-20 mx-auto">
+            <div class="absolute inset-0 rounded-full border-4 border-t-orange-400 border-r-transparent border-b-white border-l-transparent animate-spin duration-1000"></div>
+            <div class="absolute inset-2 rounded-full border-4 border-t-transparent border-r-blue-300 border-b-transparent border-l-orange-500 animate-spin duration-500 reverse"></div>
+            <div class="absolute inset-0 flex items-center justify-center">
+                <i class="fa-solid fa-bolt-lightning text-orange-400 text-2xl animate-pulse"></i>
+            </div>
+        </div>
+        
+        <div class="space-y-1">
+            <h2 class="text-xl font-black tracking-widest text-white">J APP PRO</h2>
+            <p class="text-[10px] text-orange-400 uppercase tracking-widest font-bold animate-pulse">Menyelaraskan Data Cloud Tuan CANDRA...</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Skrip otomatis menghilangkan loading setelah data Sheets tersedot murni
+    window.addEventListener('load', function() {
+        setTimeout(() => {
+            const loadingScreen = document.getElementById('loading-page-dayu');
+            if(loadingScreen) {
+                loadingScreen.classList.add('opacity-0', 'pointer-events-none');
+                setTimeout(() => loadingScreen.remove(), 700);
+            }
+        }, 2000); // Dayu tahan 2 detik biar kelihatan mewah nggih!
+    });
+</script>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Skrip otomatis menghilangkan loading setelah data Sheets tersedot murni
+    window.addEventListener('load', function() {
+        setTimeout(() => {
+            const loadingScreen = document.getElementById('loading-page-dayu');
+            if(loadingScreen) {
+                loadingScreen.classList.add('opacity-0', 'pointer-events-none');
+                setTimeout(() => loadingScreen.remove(), 700);
+            }
+        }, 2000); // Dayu tahan 2 detik biar kelihatan mewah nggih!
+    });
+</script>    
 
     <div id="screen-login" class="fixed inset-0 bg-[#0052CC] z-[999] flex flex-col justify-center items-center p-6 text-white">
         <div class="w-full max-w-sm space-y-6 text-center">
