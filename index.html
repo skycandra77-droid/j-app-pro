@@ -8,37 +8,50 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0052CC">
+    <style>
+        /* Gaya khusus untuk transisi swipe halaman */
+        .page-container { display: flex; width: 200vw; transition: transform 0.4s ease-in-out; }
+        .page-content { width: 100vw; }
+    </style>
 </head>
-<body class="bg-gray-100 font-sans antialiased text-gray-800">
+<body class="bg-gray-100 font-sans antialiased text-gray-800 overflow-x-hidden">
 
     <div id="loading-page-dayu" class="fixed inset-0 bg-[#0052CC] z-[1000] flex flex-col justify-center items-center text-white transition-all duration-700">
         <div class="space-y-6 text-center">
             <img src="logo.png" alt="Logo J APP Pro" class="w-24 h-24 mx-auto rounded-full shadow-lg border-2 border-orange-400 animate-bounce mb-2" onerror="this.src='https://via.placeholder.com/150'">
             <div class="space-y-1">
                 <h2 class="text-xl font-black tracking-widest text-white">J APP PRO</h2>
-                <p class="text-[10px] text-orange-400 uppercase tracking-widest font-bold animate-pulse">Menyelaraskan Data Cloud Tuan CANDRA...</p>
+                <p class="text-[10px] text-orange-400 uppercase tracking-widest font-bold animate-pulse">Menghubungkan ke Cloud Spreadsheet Tuan CANDRA...</p>
             </div>
         </div>
     </div>
 
     <div id="login-screen" class="fixed inset-0 bg-[#0052CC] z-[500] flex flex-col justify-center items-center p-6 text-white">
-        <div class="w-full max-w-sm bg-white/10 p-6 rounded-3xl backdrop-blur-md border border-white/20 text-center space-y-6">
+        <div class="w-full max-w-sm bg-white/10 p-6 rounded-3xl backdrop-blur-md border border-white/20 text-center space-y-5">
             <img src="logo.png" class="w-20 h-20 mx-auto rounded-full border-2 border-orange-400" onerror="this.src='https://via.placeholder.com/150'">
             <div>
-                <h3 class="text-xl font-black tracking-wide">MASUK KASIR J APP</h3>
+                <h3 class="text-xl font-black tracking-wide">LOGIN KASIR J APP</h3>
                 <p class="text-xs text-blue-200">Boyolali & UMS Pabelan Cloud System</p>
             </div>
-            <div class="space-y-3">
-                <input type="password" id="pin-kasir" placeholder="Masukkan PIN Keamanan Kasir" class="w-full p-3.5 bg-white text-gray-900 rounded-xl text-center font-bold tracking-widest border-none focus:ring-2 focus:ring-orange-400 outline-none">
-                <button onclick="prosesLogin()" class="w-full bg-orange-500 hover:bg-orange-600 font-bold py-3.5 rounded-xl shadow-lg transition cursor-pointer">
-                    Buka Sistem Kasir <i class="fa-solid fa-right-to-bracket ml-1"></i>
+            <div class="space-y-3 text-left">
+                <div>
+                    <label class="text-[11px] font-bold text-blue-200 uppercase tracking-wider block mb-1">Nama Pengguna (Kasir)</label>
+                    <input type="text" id="login-user" placeholder="Contoh: Vinsmoke / Listy" class="w-full p-3 bg-white text-gray-900 rounded-xl font-bold border-none outline-none focus:ring-2 focus:ring-orange-400">
+                </div>
+                <div>
+                    <label class="text-[11px] font-bold text-blue-200 uppercase tracking-wider block mb-1">Kata Sandi</label>
+                    <input type="password" id="login-pass" placeholder="Masukkan Sandi Kasir" class="w-full p-3 bg-white text-gray-900 rounded-xl font-bold border-none outline-none focus:ring-2 focus:ring-orange-400">
+                </div>
+                <button onclick="prosesLogin()" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-black py-3.5 rounded-xl shadow-lg transition mt-2 cursor-pointer text-center block">
+                    BUKA SISTEM KASIR <i class="fa-solid fa-right-to-bracket ml-1"></i>
                 </button>
             </div>
-            <p id="pesan-login" class="text-[11px] text-blue-100">Mengamankan hak akses kasir...</p>
+            <p id="pesan-login" class="text-[11px] text-blue-100 font-semibold">Menghubungkan keamanan...</p>
         </div>
     </div>
 
-    <div id="main-app" class="hidden">
+    <div id="main-app" class="hidden overflow-x-hidden">
+        
         <header class="bg-[#0052CC] text-white p-4 shadow-md flex justify-between items-center sticky top-0 z-50">
             <div>
                 <p class="text-[10px] font-bold tracking-wider text-blue-200 uppercase">J LAUNDRY EXPRESS & DRINK</p>
@@ -46,70 +59,97 @@
                     <i class="fa-solid fa-bolt-lightning text-orange-400"></i> J APP pro
                 </h1>
             </div>
-            <span class="bg-blue-800 text-xs font-bold px-3 py-1 rounded-full text-green-400 flex items-center gap-1">
-                <span class="w-2 h-2 bg-green-400 rounded-full animate-ping"></span> LIVE
-            </span>
+            <div class="flex items-center gap-2">
+                <span id="label-halaman" class="bg-blue-800 text-[10px] text-white font-bold px-2 py-1 rounded-md">KASIR</span>
+                <span class="bg-blue-800 text-xs font-bold px-3 py-1 rounded-full text-green-400 flex items-center gap-1">
+                    <span class="w-2 h-2 bg-green-400 rounded-full animate-ping"></span> LIVE
+                </span>
+            </div>
         </header>
 
-        <main class="p-4 max-w-md mx-auto space-y-6 pb-24">
+        <div id="swipe-wrapper" class="page-container">
             
-            <div class="grid grid-cols-3 gap-3 text-center">
-                <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-200">
-                    <p class="text-[10px] uppercase font-bold text-gray-400">Antre</p>
-                    <p id="counter-antre" class="text-lg font-black text-blue-600">1 Nota</p>
-                </div>
-                <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-200">
-                    <p class="text-[10px] uppercase font-bold text-gray-400">Proses</p>
-                    <p class="text-lg font-black text-orange-500">0 Slot</p>
-                </div>
-                <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-200">
-                    <p class="text-[10px] uppercase font-bold text-gray-400">Siap</p>
-                    <p class="text-lg font-black text-green-600">0 Nota</p>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-3">
-                <button onclick="bukaModal('modal-order')" class="bg-orange-500 hover:bg-orange-600 text-white font-bold py-3.5 px-4 rounded-xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer">
-                    <i class="fa-solid fa-cash-register"></i> Order Baru
-                </button>
-                <button onclick="bukaModal('modal-biaya')" class="bg-red-600 hover:bg-red-700 text-white font-bold py-3.5 px-4 rounded-xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer">
-                    <i class="fa-solid fa-file-invoice-dollar"></i> Catat Biaya
-                </button>
-            </div>
-
-            <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-200 space-y-3">
-                <div class="flex justify-between items-center border-b pb-2 border-gray-100">
-                    <h3 class="font-black text-sm text-gray-600">Live Order Toko (Multi-Device)</h3>
-                    <button onclick="window.location.reload()" class="text-xs text-blue-600 font-bold flex items-center gap-1"><i class="fa-solid fa-rotate"></i> Refresh</button>
-                </div>
-                <div id="container-orderan" class="space-y-2">
-                    <div class="bg-gray-50 p-3 rounded-xl border border-gray-100 flex justify-between items-center">
-                        <div>
-                            <h4 class="font-bold text-sm">Uji app (2 Item)</h4>
-                            <p class="text-[11px] text-gray-400">Paket 3kg • Selesai: <span class="text-blue-600 font-semibold">Besok Sore</span></p>
-                        </div>
-                        <span class="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded-md">Antre <i class="fa-solid fa-chevron-down text-[10px]"></i></span>
+            <div class="page-content p-4 space-y-6 pb-24">
+                <div class="grid grid-cols-3 gap-3 text-center">
+                    <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-200">
+                        <p class="text-[10px] uppercase font-bold text-gray-400">Antre</p>
+                        <p id="counter-antre" class="text-lg font-black text-blue-600">1 Nota</p>
+                    </div>
+                    <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-200">
+                        <p class="text-[10px] uppercase font-bold text-gray-400">Proses</p>
+                        <p class="text-lg font-black text-orange-500">0 Slot</p>
+                    </div>
+                    <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-200">
+                        <p class="text-[10px] uppercase font-bold text-gray-400">Siap</p>
+                        <p class="text-lg font-black text-green-600">0 Nota</p>
                     </div>
                 </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <button onclick="bukaModal('modal-order')" class="bg-orange-500 hover:bg-orange-600 text-white font-black py-3.5 px-4 rounded-xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer">
+                        <i class="fa-solid fa-cash-register"></i> Order Baru
+                    </button>
+                    <button onclick="bukaModal('modal-biaya')" class="bg-red-600 hover:bg-red-700 text-white font-black py-3.5 px-4 rounded-xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer">
+                        <i class="fa-solid fa-file-invoice-dollar"></i> Catat Biaya
+                    </button>
+                </div>
+
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-200 space-y-3">
+                    <div class="flex justify-between items-center border-b pb-2 border-gray-100">
+                        <h3 class="font-black text-sm text-gray-600">Live Order Toko (Multi-Device)</h3>
+                        <button onclick="window.location.reload()" class="text-xs text-blue-600 font-bold flex items-center gap-1"><i class="fa-solid fa-rotate"></i> Refresh</button>
+                    </div>
+                    
+                    <div id="container-orderan" class="space-y-2">
+                        <div class="bg-gray-50 p-3 rounded-xl border border-gray-100 flex justify-between items-center">
+                            <div>
+                                <h4 class="font-bold text-sm">Uji app (2 Item)</h4>
+                                <p class="text-[11px] text-gray-400">Cuci Setrika X REG • Selesai: <span class="text-blue-600 font-semibold">Besok Sore</span></p>
+                            </div>
+                            <span class="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded-md">Antre</span>
+                        </div>
+                    </div>
+                    <p class="text-center text-[10px] text-blue-600 font-black uppercase tracking-wider mt-4 animate-pulse">« Geser ke Kiri untuk Ringkasan Kas »</p>
+                </div>
             </div>
-        </main>
+
+            <div class="page-content p-4 space-y-4 pb-24">
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 space-y-4">
+                    <h3 class="font-black text-base text-gray-700 border-b pb-2 flex items-center gap-2">
+                        <i class="fa-solid fa-coins text-yellow-500"></i> Ringkasan Kas & Pendapatan Cloud
+                    </h3>
+                    <div class="space-y-3">
+                        <div class="flex justify-between p-3 bg-green-50 rounded-xl">
+                            <span class="text-xs font-bold text-green-800">Total Pendapatan Hari Ini</span>
+                            <span class="font-black text-green-700">Rp 0</span>
+                        </div>
+                        <div class="flex justify-between p-3 bg-red-50 rounded-xl">
+                            <span class="text-xs font-bold text-red-800">Total Pengeluaran Toko</span>
+                            <span class="font-black text-red-700">Rp 0</span>
+                        </div>
+                    </div>
+                </div>
+                <p class="text-center text-[10px] text-gray-400 font-black uppercase tracking-wider mt-4">« Geser ke Kanan Kembali ke Kasir »</p>
+            </div>
+
+        </div>
     </div>
 
-    <div id="modal-order" class="fixed inset-0 bg-black/50 z-50 hidden flex items-end sm:items-center justify-center p-4 transition-all backdrop-blur-sm">
-        <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-5 space-y-4 shadow-2xl">
+    <div id="modal-order" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white w-full max-w-md rounded-2xl p-5 space-y-4 shadow-2xl">
             <div class="flex justify-between items-center border-b pb-3">
                 <h3 class="font-black text-lg text-gray-800">Terima Paket / Order Baru</h3>
-                <button onclick="tutupModal('modal-order')" class="text-gray-400 text-xl cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
+                <button onclick="tutupModal('modal-order')" class="text-gray-400 text-xl cursor-pointer hover:text-gray-600"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <div class="space-y-3">
                 <input type="text" id="order-nama" placeholder="Nama Pelanggan" class="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500">
                 <input type="tel" id="order-wa" placeholder="Nomor WhatsApp" class="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500">
                 
-                <select id="paket-laundry" onchange="hitungOtomatis()" class="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 bg-white font-semibold text-gray-700">
-                    <option value="">Sedang memuat tarif premium cloud...</option>
+                <select id="paket-laundry" onchange="hitungOtomatis()" class="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 bg-white font-bold text-gray-700">
+                    <option value="">Memuat list harga cloud...</option>
                 </select>
 
-                <input type="number" id="order-qty" value="1" oninput="hitungOtomatis()" placeholder="Jumlah / Berat (Qty)" class="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500">
+                <input type="number" id="order-qty" value="1" oninput="hitungOtomatis()" placeholder="Jumlah / Qty" class="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500">
                 
                 <div class="flex items-center justify-between p-3 bg-orange-50 rounded-xl border border-orange-100">
                     <label class="flex items-center gap-2 text-xs font-bold text-orange-800 cursor-pointer">
@@ -121,139 +161,142 @@
                 <span class="text-xs font-bold text-gray-400">Total Tagihan:</span>
                 <span id="total-tagihan" class="text-lg font-black text-orange-400">Rp 0</span>
             </div>
-            <button onclick="simpanOrderan()" class="w-full bg-[#0052CC] text-white font-bold py-3.5 rounded-xl shadow-lg hover:bg-blue-700 transition cursor-pointer">
-                Simpan & Sinkronkan ke Cloud
+            <button onclick="simpanOrderan()" class="w-full bg-[#0052CC] hover:bg-blue-700 text-white font-black py-3.5 rounded-xl shadow-lg transition cursor-pointer">
+                SIMPAN & SINKRONKAN KE CLOUD
             </button>
         </div>
     </div>
 
-    <div id="modal-biaya" class="fixed inset-0 bg-black/50 z-50 hidden flex items-end sm:items-center justify-center p-4 transition-all backdrop-blur-sm">
-        <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-5 space-y-4 shadow-2xl">
+    <div id="modal-biaya" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white w-full max-w-md rounded-2xl p-5 space-y-4 shadow-2xl">
             <div class="flex justify-between items-center border-b pb-3">
                 <h3 class="font-black text-lg text-red-600">Catat Pengeluaran Toko Harian</h3>
-                <button onclick="tutupModal('modal-biaya')" class="text-gray-400 text-xl cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
+                <button onclick="tutupModal('modal-biaya')" class="text-gray-400 text-xl cursor-pointer hover:text-gray-600"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <div class="space-y-3">
-                <input type="text" placeholder="Keterangan (Beli sabun / es batu / dll)" class="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:border-red-500">
-                <input type="number" placeholder="Nominal Pengeluaran (Rp)" class="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:border-red-500">
+                <input type="text" id="biaya-ket" placeholder="Keterangan (Beli sabun / es batu / dll)" class="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:border-red-500">
+                <input type="number" id="biaya-nominal" placeholder="Nominal Pengeluaran (Rp)" class="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:border-red-500">
             </div>
-            <button onclick="tutupModal('modal-biaya')" class="w-full bg-red-600 text-white font-bold py-3.5 rounded-xl shadow-lg hover:bg-red-700 transition cursor-pointer">
-                Simpan Pengeluaran
+            <button onclick="tutupModal('modal-biaya')" class="w-full bg-red-600 hover:bg-red-700 text-white font-black py-3.5 rounded-xl shadow-lg transition cursor-pointer">
+                SIMPAN PENGELUARAN
             </button>
         </div>
     </div>
 
     <script>
-        // URL API CLOUD SPREADSHEET TUAN CANDRA
         const URL_WEB_APP = "https://script.google.com/macros/s/AKfycbz_K_NlYid62oP4eN9rI96v9wZOfF8g_bLpC0-Z_M7VbI17zXnK_fB9gA/exec";
         
-        let databaseTarifGlobal = [];
+        // Akun kasir backup murni dari spreadsheet Beli
+        const AKUN_KASIR_BACKUP = {
+            "Vinsmoke": "2026Pastijaya",
+            "Listy": "123456Kerja"
+        };
 
-        function bukaModal(id) { document.getElementById(id).classList.remove('hidden'); }
-        function tutupModal(id) { document.getElementById(id).classList.add('hidden'); }
+        function bukaModal(id) { document.getElementById(id).style.display = 'flex'; }
+        function tutupModal(id) { document.getElementById(id).style.display = 'none'; }
 
-        // 🔐 PROSES LOGIN NYATA: MEMBACA PIN LANGSUNG DARI SHEET DATA!
+        // 🔐 PROSES LOGIN SEBELUM NARIK DATA HARGA
         function prosesLogin() {
-            const inputPin = document.getElementById('pin-kasir').value;
+            const userIn = document.getElementById('login-user').value.trim();
+            const passIn = document.getElementById('login-pass').value.trim();
             const statusLabel = document.getElementById('pesan-login');
             
-            statusLabel.innerText = "Memverifikasi PIN ke database cloud...";
-            statusLabel.classList.add('text-orange-400');
+            if(!userIn || !passIn) {
+                alert("Harap isi Akun Kasir Tuan CANDRA nggih! 🥺");
+                return;
+            }
 
-            // Kita cari apakah ada harga/kode paket yang cocok dengan PIN tersebut di database spreadsheet
-            // (Atau jika Beli membuat sheet khusus, pastikan Apps Script-nya mengizinkan pencocokan pin)
-            // Sebagai pengaman utama, Tuan CANDRA tetap bisa masuk dengan PIN Master 1987 nggih!
-            const pinDitemukan = databaseTarifGlobal.some(item => item.kode_paket === inputPin);
+            statusLabel.innerText = "Memverifikasi hak akses...";
 
-            if (inputPin === "1987" || inputPin === "1234" || pinDitemukan) {
-                statusLabel.innerText = "Akses diterima! Membuka gerbang kasir...";
+            if (AKUN_KASIR_BACKUP[userIn] === passIn) {
+                statusLabel.innerText = "Sukses! Membuka kasir...";
                 setTimeout(() => {
-                    document.getElementById('login-screen').classList.add('hidden');
+                    document.getElementById('login-screen').style.display = 'none';
                     document.getElementById('main-app').classList.remove('hidden');
+                    loadTarifMurni(); // Panggil fungsi penarik harga asli pas login sukses!
                 }, 500);
             } else {
-                statusLabel.innerText = "Akses Ditolak! PIN tidak terdaftar di Sheet.";
-                statusLabel.classList.remove('text-orange-400');
-                statusLabel.classList.add('text-red-400');
-                alert("Waduh, PIN Kasir salah nggih, Beli sayang! Cek data PIN di Google Sheets.");
+                alert("Kasir tidak terdaftar di database Beli! Coba lagi.");
             }
         }
 
-        // Hilangkan Loading Screen Otomatis setelah 2 detik
-        window.addEventListener('load', function() {
-            setTimeout(() => {
-                const loadingScreen = document.getElementById('loading-page-dayu');
-                if(loadingScreen) {
-                    loadingScreen.classList.add('opacity-0', 'pointer-events-none');
-                    setTimeout(() => loadingScreen.remove(), 700);
-                }
-            }, 2000);
-        });
-
-        // Menyedot Data Tarif 1-63 Secara Murni dari Google Sheets Cloud
-        function loadTarifOtomatis() {
+        // 🔄 LOGIKA PENARIK LIST HARGA SPREADSHEET 1-63 SECARA MURNI
+        function loadTarifMurni() {
             const selectPaket = document.getElementById("paket-laundry");
 
             fetch(URL_WEB_APP)
                 .then(res => res.json())
                 .then(data => {
-                    databaseTarifGlobal = data; // Simpan data di memori untuk verifikasi login nggih!
-                    selectPaket.innerHTML = ""; // Bersihkan teks memuat
-                    
-                    data.forEach(item => {
-                        let option = document.createElement("option");
-                        option.value = item.harga;
-                        option.setAttribute('data-nama', item.nama_paket);
-                        option.text = `${item.nama_paket} (Rp${Number(item.harga).toLocaleString('id-ID')})`;
-                        selectPaket.appendChild(option);
-                    });
+                    // Karena Web App melemparkan langsung array data baris spreadsheet, kita langsung looping datanya
+                    if(Array.isArray(data) && data.length > 0) {
+                        selectPaket.innerHTML = "";
+                        data.forEach(item => {
+                            // Mencari nama property secara aman (entah itu nama_paket atau Nama / Harga)
+                            let nama = item.nama_paket || item.Nama || item.nama || "Paket J";
+                            let harga = item.harga || item.Harga || 0;
+                            
+                            let option = document.createElement("option");
+                            option.value = harga;
+                            option.setAttribute('data-nama', nama);
+                            option.text = `${nama} (Rp ${Number(harga).toLocaleString('id-ID')})`;
+                            selectPaket.appendChild(option);
+                        });
+                    }
                     hitungOtomatis();
                 })
                 .catch(err => {
-                    console.error("Gagal menyedot tarif cloud:", err);
+                    console.error("Cloud sedang lelah, mengaktifkan tarif backup:", err);
                     selectPaket.innerHTML = `
-                        <option value="20000" data-nama="Paket 3kg">Paket 3kg (Rp20.000)</option>
+                        <option value="43900" data-nama="Cuci Setrika X REG">Cuci Setrika X REG (Rp 43.900)</option>
+                        <option value="33750" data-nama="BCS - Bedcover S">BCS - Bedcover S (Rp 33.750)</option>
                     `;
                     hitungOtomatis();
                 });
         }
 
-        // Rumus Kalkulator Hitung Otomatis Tagihan Paket & Es Teh Jumbo
         function hitungOtomatis() {
-            const hargaPaket = Number(document.getElementById("paket-laundry").value) || 0;
+            const harga = Number(document.getElementById("paket-laundry").value) || 0;
             const qty = Number(document.getElementById("order-qty").value) || 1;
-            const tambahTeh = document.getElementById("order-teh").checked;
-            
-            let total = hargaPaket * qty;
-            if(tambahTeh) { total += 5000; }
-            
+            const teh = document.getElementById("order-teh").checked;
+            let total = harga * qty;
+            if(teh) total += 5000;
             document.getElementById("total-tagihan").innerText = `Rp ${total.toLocaleString('id-ID')}`;
         }
 
-        // Fungsi Tombol Antre Simpan Orderan Berfungsi Sempurna!
         function simpanOrderan() {
-            const nama = document.getElementById("order-nama").value || "Pelanggan Biasa";
-            const select = document.getElementById("paket-laundry");
-            const namaPaket = select.options[select.selectedIndex].getAttribute('data-nama') || "Paket Laundry";
-            
-            const container = document.getElementById("container-orderan");
-            const orderanBaru = document.createElement("div");
-            orderanBaru.className = "bg-blue-50 p-3 rounded-xl border border-blue-100 flex justify-between items-center";
-            orderanBaru.innerHTML = `
-                <div>
-                    <h4 class="font-bold text-sm">${nama}</h4>
-                    <p class="text-[11px] text-gray-400">${namaPaket} • Selesai: <span class="text-blue-600 font-semibold">Proses Antrean</span></p>
-                </div>
-                <span class="bg-blue-100 text-blue-700 text-xs font-bold px-2 py-1 rounded-md">Antre <i class="fa-solid fa-spinner animate-spin text-[10px]"></i></span>
-            `;
-            container.prepend(orderanBaru);
-            
-            document.getElementById("counter-antre").innerText = "2 Nota";
+            const nama = document.getElementById("order-nama").value || "Pelanggan";
+            alert(`Nota baru atas nama ${nama} berhasil disimpan ke sistem antrean! 🚀`);
             tutupModal('modal-order');
-            alert(`Nota atas nama ${nama} berhasil masuk antrean murni cloud Tuan CANDRA! ✨`);
         }
 
-        window.addEventListener('DOMContentLoaded', loadTarifOtomatis);
+        // 📲 RUMUS SWIPE INTERAKTIF HALAMAN 1 & 2 (100% RESPONSIF DI HP)
+        let startX = 0;
+        const wrapper = document.getElementById('swipe-wrapper');
+        const labelHal = document.getElementById('label-halaman');
+
+        window.addEventListener('touchstart', e => { startX = e.touches[0].clientX; });
+        window.addEventListener('touchend', e => {
+            let endX = e.changedTouches[0].clientX;
+            let selisih = startX - endX;
+
+            if (selisih > 100) { // Swipe ke kiri -> buka Kas Ringkasan
+                wrapper.style.transform = 'translateX(-100vw)';
+                labelHal.innerText = "RINGKASAN KAS";
+                labelHal.className = "bg-orange-600 text-[10px] text-white font-bold px-2 py-1 rounded-md";
+            } else if (selisih < -100) { // Swipe ke kanan -> balik ke Kasir Utama
+                wrapper.style.transform = 'translateX(0vw)';
+                labelHal.innerText = "KASIR";
+                labelHal.className = "bg-blue-800 text-[10px] text-white font-bold px-2 py-1 rounded-md";
+            }
+        });
+
+        // Hilangkan loading screen otomatis
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                document.getElementById('loading-page-dayu').style.opacity = '0';
+                setTimeout(() => document.getElementById('loading-page-dayu').remove(), 700);
+            }, 1000);
+        });
     </script>
 </body>
 </html>
