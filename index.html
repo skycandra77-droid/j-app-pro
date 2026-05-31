@@ -3,30 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <!-- Judul aplikasi di tab browser juga otomatis diperbarui -->
     <title>J APP pro - J laundry express & drink</title>
-    <!-- Framework & External Library -->
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
     
-    <!-- Memanggil kustomisasi UI dari file terpisah -->
-    <link class="code-ui" rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/style.css">
 </head>
 <body class="bg-[#F4F5F7] font-sans antialiased text-gray-800 flex flex-col justify-between h-full">
 
-    <!-- 1. FIXED HEADER (DI-REPLACE SESUAI REFERENSI IMAGE_A2E740.PNG) -->
     <header class="bg-[#0052CC] text-white p-4 shadow-sm shrink-0">
         <div class="max-w-md mx-auto flex justify-between items-center">
             <div>
-                <!-- Menggantikan tulisan EKSPANSI LAUNDRY KILOAN & TEH -->
                 <h1 class="text-[10px] font-bold uppercase tracking-wider text-blue-200">J laundry express & drink</h1>
-                <!-- Menggantikan ikon lama dan tulisan Bilas Pro v1.7 -->
                 <p class="text-base font-extrabold flex items-center gap-1.5 mt-0.5">
                     <i class="fa-solid fa-bolt-lightning text-orange-400"></i> J APP pro
                 </p>
             </div>
-            <!-- Status Jabatan Resmi Pemilik Tetap Terjaga Prima -->
             <div class="flex items-center gap-1.5 bg-blue-800 px-2.5 py-1 rounded-full text-[11px]">
                 <div class="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></div>
                 <span class="font-medium text-blue-100">CEO CANDRA</span>
@@ -34,4 +27,129 @@
         </div>
     </header>
 
-    <!-- Sisa kontainer swiper slide ke bawah tetap sama dan menggunakan file luar -->
+    <div class="swiper max-w-md mx-auto flex-1 w-full">
+        <div class="swiper-wrapper">
+            
+            <div class="swiper-slide space-y-4">
+                <div class="grid grid-cols-3 gap-2">
+                    <div class="bg-blue-50 border border-blue-100 p-2.5 rounded-xl text-center">
+                        <p class="text-[10px] font-bold text-blue-600 uppercase">Antre</p>
+                        <p class="text-base font-black text-blue-900">5 Nota</p>
+                    </div>
+                    <div class="bg-amber-50 border border-amber-100 p-2.5 rounded-xl text-center">
+                        <p class="text-[10px] font-bold text-amber-600 uppercase">Proses</p>
+                        <p class="text-base font-black text-amber-900">3 Slot</p>
+                    </div>
+                    <div class="bg-green-50 border border-green-100 p-2.5 rounded-xl text-center">
+                        <p class="text-[10px] font-bold text-green-600 uppercase">Siap</p>
+                        <p class="text-base font-black text-green-900">12 Nota</p>
+                    </div>
+                </div>
+
+                <button onclick="bukaModal()" class="w-full bg-[#FF9900] text-white font-bold py-3 px-4 rounded-xl shadow-md flex justify-center items-center gap-2 text-sm">
+                    <i class="fa-solid fa-cash-register"></i> Terima Cucian / Order Baru
+                </button>
+
+                <div class="bg-white rounded-xl border border-gray-100 shadow-xs overflow-visible">
+                    <div class="bg-gray-50 px-3 py-2 border-b border-gray-100 flex justify-between items-center">
+                        <span class="text-xs font-bold text-gray-500">Live Order Toko</span>
+                        <span class="text-[11px] text-blue-600 font-bold animate-pulse">● Live Hari Ini</span>
+                    </div>
+                    <div class="divide-y divide-gray-100" id="daftar-transaksi">
+                        <div class="p-3 flex justify-between items-center overflow-visible" id="nota-1">
+                            <div>
+                                <p class="font-bold text-xs">Kak Made (Kiloan)</p>
+                                <p class="text-[10px] text-gray-400 mt-0.5">4 Kg • Kiloan Reguler + Teh Jumbo</p>
+                            </div>
+                            <div class="relative inline-block text-left">
+                                <button onclick="toggleDropdown('drop-1')" class="bg-green-600 text-white text-[11px] px-2.5 py-1.5 rounded-lg font-bold flex items-center gap-1.5">
+                                    Aksi <i class="fa-solid fa-chevron-down text-[9px]"></i>
+                                </button>
+                                <div id="drop-1" class="dropdown-menu hidden absolute right-0 mt-1 w-32 bg-white border border-gray-100 rounded-xl shadow-lg z-50 divide-y divide-gray-50 overflow-hidden">
+                                    <button onclick="selesaikanOrder('nota-1')" class="w-full text-left px-3 py-2 text-[11px] font-bold text-gray-700 hover:bg-green-50 hover:text-green-600 flex items-center gap-2"><i class="fa-solid fa-circle-check"></i> Ambil</button>
+                                    <button onclick="alert('Mencetak Label...')" class="w-full text-left px-3 py-2 text-[11px] font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2"><i class="fa-solid fa-print"></i> Cetak Label</button>
+                                    <button onclick="alert('Mengunduh PDF...')" class="w-full text-left px-3 py-2 text-[11px] font-medium text-gray-700 hover:bg-amber-50 hover:text-amber-600 flex items-center gap-2"><i class="fa-solid fa-file-pdf"></i> Nota PDF</button>
+                                    <button onclick="voidOrder('nota-1')" class="w-full text-left px-3 py-2 text-[11px] font-bold text-red-600 flex items-center gap-2"><i class="fa-solid fa-trash-can"></i> Void</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="pt-2"><p class="text-center text-[11px] text-amber-600 font-medium bg-amber-50 py-1.5 rounded-lg border border-amber-100"><i class="fa-solid fa-angles-left animate-bounce"></i> Usap ke kiri untuk Ringkasan Kas</p></div>
+            </div>
+            
+            <div class="swiper-slide space-y-4">
+                <div class="bg-gradient-to-br from-gray-900 to-blue-950 text-white p-4 rounded-2xl shadow-md flex justify-between items-center">
+                    <div><p class="text-[10px] text-blue-200 font-bold uppercase tracking-wide">Estimasi Saldo Kas Gabungan</p><p class="text-xl font-black mt-0.5 tracking-wide">Rp 4.250.000</p></div>
+                    <div class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center"><i class="fa-solid fa-wallet text-xl text-blue-400"></i></div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div onclick="swiper.slideTo(2)" class="bg-white p-3.5 rounded-xl border border-gray-100 shadow-xs flex items-center gap-3 cursor-pointer"><div class="w-9 h-9 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center text-sm shrink-0"><i class="fa-solid fa-chart-line"></i></div><div><p class="text-[11px] font-bold text-gray-400 uppercase">Omset Masuk</p><p class="text-xs text-green-600 font-black">+Rp 840k</p></div></div>
+                    <div onclick="swiper.slideTo(2)" class="bg-white p-3.5 rounded-xl border border-gray-100 shadow-xs flex items-center gap-3 cursor-pointer"><div class="w-9 h-9 rounded-lg bg-red-50 text-red-600 flex items-center justify-center text-sm shrink-0"><i class="fa-solid fa-file-invoice-dollar"></i></div><div><p class="text-[11px] font-bold text-gray-400 uppercase">Pengeluaran</p><p class="text-xs text-red-600 font-black">-Rp 150k</p></div></div>
+                    <div onclick="swiper.slideTo(2)" class="bg-white p-3.5 rounded-xl border border-gray-100 shadow-xs flex items-center gap-3 cursor-pointer"><div class="w-9 h-9 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center text-sm shrink-0"><i class="fa-solid fa-scale-balanced"></i></div><div><p class="text-[11px] font-bold text-gray-400 uppercase">Laba Bersih</p><p class="text-xs text-purple-600 font-black">Margin 65%</p></div></div>
+                    <div onclick="swiper.slideTo(2)" class="bg-white p-3.5 rounded-xl border border-gray-100 shadow-xs flex items-center gap-3 cursor-pointer"><div class="w-9 h-9 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center text-sm shrink-0"><i class="fa-solid fa-user-shield"></i></div><div><p class="text-[11px] font-bold text-gray-400 uppercase">Kas Deposit</p><p class="text-xs text-amber-600 font-black">18 Member</p></div></div>
+                </div>
+                <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-xs">
+                    <p class="text-[11px] font-bold text-gray-400 text-center uppercase tracking-wider mb-4">Perbandingan Omset Lini Bisnis</p>
+                    <div class="flex justify-around items-end h-16 pb-2 border-b border-gray-100 px-4">
+                        <div class="flex flex-col items-center gap-2 w-16"><div class="w-full bg-[#0052CC] h-14 rounded-t-md"></div><span class="text-[10px] font-extrabold text-blue-700">Laundry (70%)</span></div>
+                        <div class="flex flex-col items-center gap-2 w-16"><div class="w-full bg-[#FF9900] h-6 rounded-t-md"></div><span class="text-[10px] font-extrabold text-orange-600">Teh Jumbo (30%)</span></div>
+                    </div>
+                </div>
+                <div class="pt-1"><p class="text-center text-[11px] text-blue-600 font-bold bg-blue-50 py-2 rounded-xl"><i class="fa-solid fa-angles-left"></i> Geser kiri ke Jurnal Detail Harian</p></div>
+            </div>
+
+            <div class="swiper-slide space-y-4">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-xs font-black text-gray-900 uppercase tracking-wider flex items-center gap-1.5"><i class="fa-solid fa-folder-open text-[#0052CC]"></i> Jurnal Evaluasi Harian</h3>
+                    <span class="text-[10px] bg-blue-100 text-[#0052CC] font-bold px-2 py-0.5 rounded">Mei 2026</span>
+                </div>
+                <div class="bg-white rounded-xl border border-gray-100 shadow-xs overflow-hidden">
+                    <table class="w-full text-[10px] text-left border-collapse">
+                        <thead class="bg-gray-50 text-gray-400 font-bold uppercase text-[9px] border-b border-gray-100">
+                            <tr><th class="p-2.5">Tanggal</th><th class="p-2.5">Laundry</th><th class="p-2.5">Teh Jumbo</th><th class="p-2.5 text-red-600">Pengeluaran</th><th class="p-2.5 text-right text-green-700">Laba Bersih</th></tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100 font-medium text-[11px]">
+                            <tr class="hover:bg-gray-50"><td class="p-2.5 font-bold text-gray-700">31 Mei (Hari ini)</td><td class="p-2.5 text-blue-600">Rp 588.000</td><td class="p-2.5 text-orange-500">Rp 252.000</td><td class="p-2.5 text-red-500">-Rp 150.000</td><td class="p-2.5 text-right font-black text-green-600">Rp 690.000</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <a href="https://drive.google.com/drive/folders/11f86aLgPw8Z33MOMJ8Gy_nKN8rhlO75L" target="_blank" class="w-full bg-emerald-600 text-white font-bold py-2.5 rounded-xl flex justify-center items-center gap-2 text-xs"><i class="fa-solid fa-file-excel"></i> Ekspor Laporan Bulanan ke Google Drive</a>
+            </div>
+
+        </div>
+    </div>
+
+    <nav class="bg-white border-t border-gray-100 py-2 shadow-lg shrink-0">
+        <div class="max-w-md mx-auto grid grid-cols-2 text-center">
+            <button id="nav-kasir" class="flex flex-col items-center gap-1 text-[#0052CC] font-bold"><i class="fa-solid fa-cash-register text-base"></i><span class="text-[11px]">Kasir Toko</span></button>
+            <button id="nav-pembukuan" class="flex flex-col items-center gap-1 text-gray-400 font-medium"><i class="fa-solid fa-book-bookmark text-base"></i><span class="text-[11px]">Pembukuan</span></button>
+        </div>
+    </nav>
+
+    <div id="modalOrder" class="fixed inset-0 bg-black/50 z-50 hidden flex items-end justify-center p-0 transition-opacity">
+        <div class="bg-white w-full max-w-md rounded-t-2xl p-5 space-y-4 shadow-xl">
+            <div class="flex justify-between items-center border-b border-gray-100 pb-2">
+                <h3 class="font-bold text-sm text-gray-950">Form Input Transaksi Baru</h3>
+                <button onclick="tutupModal()" class="text-gray-400 p-1 text-sm"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="space-y-3">
+                <input type="text" id="input-nama" placeholder="Nama Pelanggan" class="w-full border border-gray-200 rounded-lg p-2 text-xs">
+                <div class="grid grid-cols-2 gap-2">
+                    <input type="number" id="input-berat" oninput="hitungOtomatisHarga()" placeholder="Berat (Kg)" class="w-full border border-gray-200 rounded-lg p-2 text-xs">
+                    <select id="input-paket" onchange="hitungOtomatisHarga()" class="w-full border border-gray-200 rounded-lg p-2 text-xs bg-white"><option value="7000">Kiloan Reguler (Rp7.000/Kg)</option><option value="12000">Kiloan Express (Rp12.000/Kg)</option></select>
+                </div>
+                <div class="bg-orange-50 p-2.5 rounded-lg border border-orange-100 flex justify-between items-center">
+                    <label class="flex items-center gap-2 text-xs font-bold text-orange-800 cursor-pointer"><input type="checkbox" id="input-teh" onchange="hitungOtomatisHarga()" class="rounded text-orange-500"> Bundling Es Teh Jumbo (+Rp5.000)</label>
+                </div>
+                <div class="bg-gray-900 text-white p-3 rounded-lg flex justify-between items-center"><span class="text-xs font-medium text-gray-300">Total Tagihan:</span><span id="live-total-harga" class="text-sm font-black text-orange-400">Rp 0</span></div>
+            </div>
+            <button onclick="simpanTransaksiBaru()" class="w-full bg-[#0052CC] text-white font-bold py-2.5 rounded-lg text-xs">Simpan & Kirim Nota WA Default</button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+    <script src="js/rumus.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
