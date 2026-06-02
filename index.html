@@ -3,182 +3,174 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>J APP pro - Laundry & Drink</title>
-    <link rel="stylesheet" href="css/style.css">
+    <title>J APP Pro - Laundry & Drink</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="style.css">
+    <meta name="theme-color" content="#10b981">
 </head>
 <body>
-    <div class="container">
-        <!-- Header -->
-        <div class="header">
-            <h1>J APP PRO</h1>
-            <p>Laundry Express & Drink - Boyolali & UMS Pabelan</p>
-        </div>
-        
-        <!-- Login Screen -->
-        <div id="loginScreen" class="login-screen">
-            <div class="login-box">
-                <h2>🔐 LOGIN KASIR J APP</h2>
-                <div class="form-group">
-                    <label for="username">Nama Pengguna (Kasir)</label>
-                    <input type="text" id="username" placeholder="Masukkan username">
-                </div>
-                <div class="form-group">
-                    <label for="password">Kata Sandi</label>
-                    <input type="password" id="password" placeholder="Masukkan password">
-                </div>
-                <button class="btn" onclick="handleLogin()">
-                    BUKA SISTEM KASIR
-                </button>
-                <p class="text-center mt-20" style="color: #666; font-size: 12px;">
-                    Menghubungkan keamanan...
-                </p>
-            </div>
-        </div>
-        
-        <!-- Main App -->
-        <div id="mainApp" class="main-app">
-            <!-- Status Bar -->
-            <div class="status-bar">
-                <div class="status-item">
-                    <div class="number" id="statusAntre">1</div>
-                    <div class="label">Antre</div>
-                </div>
-                <div class="status-item">
-                    <div class="number" id="statusProses">0</div>
-                    <div class="label">Proses</div>
-                </div>
-                <div class="status-item">
-                    <div class="number" id="statusSiap">0</div>
-                    <div class="label">Siap</div>
-                </div>
-            </div>
+
+<div class="container">
+
+    <!-- ==================== LOGIN SCREEN ==================== -->
+    <div id="loginScreen" class="login-screen">
+        <div class="login-bg-effect"></div>
+        <div class="login-box">
+            <div class="login-logo">🧺</div>
+            <h2>J APP PRO</h2>
+            <p class="login-subtitle">Laundry Express & Drink • Boyolali & UMS</p>
             
-            <!-- Swipe Wrapper -->
-            <div class="swipe-wrapper" id="swipeWrapper">
-                <!-- Panel Kasir -->
-                <div class="panel panel-kasir" id="panelKasir">
-                    <div class="swipe-hint">
-                        « Geser ke Kiri untuk Ringkasan Kas »
-                    </div>
-                    
-                    <!-- Live Orders -->
-                    <div class="card">
-                        <h3> Live Order Toko (Multi-Device)</h3>
-                        <div id="liveOrders">
-                            <div class="loading">Memuat order</div>
-                        </div>
-                    </div>
-                    
-                    <!-- New Order Form -->
-                    <div class="card">
-                        <h3>🧺 Order Baru</h3>
-                        <div class="form-group">
-                            <label for="namaPelanggan">Nama Pelanggan</label>
-                            <input type="text" id="namaPelanggan" placeholder="Masukkan nama pelanggan">
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="nomorWa">Nomor WhatsApp</label>
-                            <input type="text" id="nomorWa" placeholder="Contoh: 081234567890">
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="paketLaundry">Paket Laundry</label>
-                            <select id="paketLaundry">
-                                <option value="">Memuat list harga cloud...</option>
-                            </select>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="jumlahOrder">Jumlah Order (Kg/Pcs)</label>
-                            <input type="number" id="jumlahOrder" value="1" min="1">
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="bundlingDrink">+ Es Teh Jumbo (+Rp5k)</label>
-                            <select id="bundlingDrink">
-                                <option value="Tidak">Tidak</option>
-                                <option value="Ya">Ya</option>
-                            </select>
-                        </div>
-                        
-                        <div class="total-display">
-                            <div class="label">Total Tagihan:</div>
-                            <div class="amount" id="totalTagihan">Rp 0</div>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="estimasiSelesai">Estimasi Selesai</label>
-                            <input type="text" id="estimasiSelesai" readonly placeholder="Otomatis">
-                        </div>
-                        
-                        <!-- ✅ TOMBOL SIMPAN YANG JELAS & BESAR -->
-                        <button class="btn btn-save" onclick="simpanTransaksi()">
-                            ✅ SIMPAN & TAMBAHKAN ORDER BARU
-                        </button>
-                    </div>
-                    
-                    <!-- Catat Pengeluaran -->
-                    <div class="card">
-                        <h3>💰 Catat Pengeluaran Toko Harian</h3>
-                        <div class="form-group">
-                            <label for="keteranganPengeluaran">Keterangan</label>
-                            <input type="text" id="keteranganPengeluaran" placeholder="Contoh: Beli deterjen">
-                        </div>
-                        <div class="form-group">
-                            <label for="jumlahPengeluaran">Jumlah (Rp)</label>
-                            <input type="number" id="jumlahPengeluaran" placeholder="0">
-                        </div>
-                        <button class="btn btn-secondary" onclick="simpanPengeluaran()">
-                            SIMPAN PENGELUARAN
-                        </button>
-                    </div>
-                </div>
-                
-                <!-- Panel Ringkasan -->
-                <div class="panel panel-ringkasan" id="panelRingkasan">
-                    <div class="swipe-hint">
-                        « Geser ke Kanan Kembali ke Kasir »
-                    </div>
-                    
-                    <div class="card">
-                        <h3>💵 Ringkasan Kas & Pendapatan Cloud</h3>
-                        
-                        <div class="summary-grid">
-                            <div class="summary-box">
-                                <div class="icon">💰</div>
-                                <div class="value" id="totalPendapatan">Rp 0</div>
-                                <div class="label">Total Pendapatan Hari Ini</div>
-                            </div>
-                            <div class="summary-box">
-                                <div class="icon">💸</div>
-                                <div class="value" id="totalPengeluaran">Rp 0</div>
-                                <div class="label">Total Pengeluaran Toko</div>
-                            </div>
-                        </div>
-                        
-                        <div class="summary-box" style="margin-top: 15px;">
-                            <div class="label">Saldo Bersih</div>
-                            <div class="value" id="saldoBersih" style="font-size: 24px; color: #2196F3;">Rp 0</div>
-                        </div>
-                    </div>
-                    
-                    <!-- Menu Pembukuan Lengkap -->
-                    <div class="card">
-                        <h3>📊 Pembukuan Lengkap Hari Ini</h3>
-                        <div id="pembukuanTable">
-                            <div class="loading">Memuat data pembukuan</div>
-                        </div>
-                    </div>
-                    
-                    <button class="btn" onclick="refreshData()" style="margin-top: 20px;">
-                        🔄 Refresh Data
-                    </button>
-                </div>
+            <div class="form-group">
+                <label>👤 Nama Pengguna</label>
+                <input type="text" id="username" placeholder="Masukkan username kasir">
             </div>
+            <div class="form-group">
+                <label>🔒 Kata Sandi</label>
+                <input type="password" id="password" placeholder="Masukkan password">
+            </div>
+            <button class="btn btn-primary" onclick="handleLogin()">BUKA SISTEM KASIR</button>
         </div>
     </div>
-    
-    <script src="js/app.js"></script>
+
+    <!-- ==================== MAIN APP ==================== -->
+    <div id="mainApp" class="main-app">
+        
+        <!-- HEADER -->
+        <div class="header">
+            <h1>J APP PRO</h1>
+            <p>Laundry Express & Drink</p>
+        </div>
+
+        <!-- STATUS BAR -->
+        <div class="status-bar">
+            <div class="status-item antre">
+                <div class="number" id="statusAntre">0</div>
+                <div class="label">⏳ Antre</div>
+            </div>
+            <div class="status-item proses">
+                <div class="number" id="statusProses">0</div>
+                <div class="label">⚙️ Proses</div>
+            </div>
+            <div class="status-item siap">
+                <div class="number" id="statusSiap">0</div>
+                <div class="label">✅ Siap</div>
+            </div>
+        </div>
+
+        <!-- SWIPE WRAPPER -->
+        <div id="swipeWrapper" class="swipe-wrapper">
+            
+            <!-- ============ PANEL 1: KASIR ============ -->
+            <div id="panelKasir" class="panel panel-kasir">
+                
+                <!-- Form Order Baru -->
+                <div class="card">
+                    <h3>🧺 Order Baru</h3>
+                    <div class="form-group">
+                        <label>Nama Pelanggan</label>
+                        <input type="text" id="namaPelanggan" placeholder="Contoh: Budi Santoso">
+                    </div>
+                    <div class="form-group">
+                        <label>Nomor WhatsApp</label>
+                        <input type="tel" id="nomorWa" placeholder="08xxxxxxxxxx">
+                    </div>
+                    <div class="form-group">
+                        <label>Paket Laundry</label>
+                        <select id="paketLaundry">
+                            <option value="">-- Pilih Paket --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Jumlah (Kg/Pcs)</label>
+                        <input type="number" id="jumlahOrder" value="1" min="1">
+                    </div>
+                    <div class="form-group">
+                        <label>+ Es Teh Jumbo (+Rp5.000)</label>
+                        <select id="bundlingDrink">
+                            <option value="Tidak">Tidak</option>
+                            <option value="Ya">Ya (+Rp5.000)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>⏰ Estimasi Selesai</label>
+                        <input type="text" id="estimasiSelesai" readonly placeholder="Akan terisi otomatis">
+                    </div>
+
+                    <!-- Total Display -->
+                    <div class="total-display">
+                        <div class="label">TOTAL TAGIHAN</div>
+                        <div class="amount" id="totalTagihan">Rp 0</div>
+                    </div>
+
+                    <button class="btn btn-save" onclick="simpanTransaksi()">✅ SIMPAN ORDER</button>
+                </div>
+
+                <!-- Live Order Toko -->
+                <div class="card">
+                    <h3>📡 Live Order Toko (Real-Time)</h3>
+                    <div id="liveOrders" class="live-orders-container">
+                        <p class="loading-text">Memuat order...</p>
+                    </div>
+                </div>
+
+                <!-- Form Pengeluaran -->
+                <div class="card">
+                    <h3>💸 Catat Pengeluaran Toko</h3>
+                    <div class="form-group">
+                        <label>Keterangan</label>
+                        <input type="text" id="keteranganPengeluaran" placeholder="Contoh: Beli deterjen, listrik">
+                    </div>
+                    <div class="form-group">
+                        <label>Jumlah (Rp)</label>
+                        <input type="number" id="jumlahPengeluaran" placeholder="Contoh: 50000">
+                    </div>
+                    <button class="btn btn-expense" onclick="simpanPengeluaran()">💾 SIMPAN PENGELUARAN</button>
+                </div>
+
+                <div class="swipe-hint">👉 Geser ke KIRI untuk lihat Ringkasan Kas</div>
+            </div>
+
+            <!-- ============ PANEL 2: RINGKASAN ============ -->
+            <div id="panelRingkasan" class="panel panel-ringkasan">
+                
+                <!-- Summary Grid -->
+                <div class="card">
+                    <h3>💰 Ringkasan Kas Hari Ini</h3>
+                    <div class="summary-grid">
+                        <div class="summary-box income">
+                            <div class="icon">💵</div>
+                            <div class="value" id="totalPendapatan">Rp 0</div>
+                            <div class="label">Pendapatan</div>
+                        </div>
+                        <div class="summary-box expense">
+                            <div class="icon">💸</div>
+                            <div class="value" id="totalPengeluaran">Rp 0</div>
+                            <div class="label">Pengeluaran</div>
+                        </div>
+                        <div class="summary-box net full-width">
+                            <div class="icon">🏦</div>
+                            <div class="value" id="saldoBersih">Rp 0</div>
+                            <div class="label">Saldo Bersih</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pembukuan Table -->
+                <div class="card">
+                    <h3>📊 Pembukuan Lengkap Hari Ini</h3>
+                    <div id="pembukuanTable" class="pembukuan-container">
+                        <p class="loading-text">Memuat data pembukuan...</p>
+                    </div>
+                    <button class="btn btn-secondary" onclick="refreshData()">🔄 Refresh Data dari Cloud</button>
+                </div>
+
+                <div class="swipe-hint">👈 Geser ke KANAN kembali ke Kasir</div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script src="app.js"></script>
 </body>
 </html>
