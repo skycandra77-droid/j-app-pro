@@ -3,12 +3,12 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    -webkit-tap-highlight-color: transparent;
+    -webkit-tap-highlight-color: transparent; /* Hilangkan highlight biru di HP */
 }
 
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); /* Background cantik gradasi */
     min-height: 100vh;
     overflow-x: hidden;
     color: #333;
@@ -16,7 +16,7 @@ body {
 
 /* ==================== CONTAINER ==================== */
 .container {
-    max-width: 480px;
+    max-width: 480px; /* Lebar maksimal seperti HP */
     margin: 0 auto;
     background: #f5f5f5;
     min-height: 100vh;
@@ -88,7 +88,7 @@ body {
     font-size: 14px;
 }
 
-.form-group input,
+.form-group input, 
 .form-group select {
     width: 100%;
     padding: 12px 15px;
@@ -99,13 +99,14 @@ body {
     background-color: #fff;
 }
 
-.form-group input:focus,
+.form-group input:focus, 
 .form-group select:focus {
     outline: none;
     border-color: #4CAF50;
     box-shadow: 0 0 0 4px rgba(76, 175, 80, 0.15);
 }
 
+/* Custom Select Arrow */
 select {
     appearance: none;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24'%3E%3Cpath fill='%23666' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
@@ -140,9 +141,13 @@ select {
     box-shadow: 0 4px 15px rgba(33, 150, 243, 0.3);
 }
 
+.btn-secondary:active {
+    box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3);
+}
+
 /* ==================== MAIN APP ==================== */
 .main-app {
-    display: none;
+    display: none; /* Hidden by default until login */
     padding-bottom: 20px;
 }
 
@@ -179,7 +184,7 @@ select {
 .swipe-wrapper {
     position: relative;
     overflow: hidden;
-    touch-action: pan-y;
+    touch-action: pan-y; /* Izinkan scroll vertikal, blokir horizontal default */
     min-height: calc(100vh - 250px);
 }
 
@@ -224,7 +229,7 @@ select {
     gap: 8px;
 }
 
-/* ==================== ORDER ITEMS ==================== */
+/* ==================== ORDER ITEMS (Live Order) ==================== */
 .order-item {
     background: #fafafa;
     padding: 15px;
@@ -253,7 +258,8 @@ select {
     margin: 3px 0;
 }
 
-.status {
+/* Status Badge */
+.order-item .status {
     display: inline-block;
     padding: 4px 12px;
     border-radius: 20px;
@@ -281,6 +287,7 @@ select {
     border: 1px solid #c3e6cb;
 }
 
+/* Dropdown Status di dalam Order Item */
 .status-dropdown {
     appearance: none;
     padding: 4px 20px 4px 10px;
@@ -292,6 +299,11 @@ select {
     background-repeat: no-repeat;
     background-position: right 6px center;
     cursor: pointer;
+}
+
+.status-dropdown:focus {
+    outline: none;
+    border-color: #4CAF50;
 }
 
 /* ==================== TOTAL DISPLAY ==================== */
@@ -317,7 +329,7 @@ select {
     letter-spacing: 1px;
 }
 
-/* ==================== SUMMARY GRID ==================== */
+/* ==================== SUMMARY GRID (Ringkasan) ==================== */
 .summary-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -366,12 +378,54 @@ select {
     backdrop-filter: blur(4px);
 }
 
+/* ==================== LOADING & ANIMATIONS ==================== */
+.loading {
+    text-align: center;
+    padding: 30px;
+    color: #999;
+}
+
+.loading::after {
+    content: '...';
+    animation: dots 1.5s steps(4, end) infinite;
+}
+
+@keyframes dots {
+    0%, 20% { content: '.'; }
+    40% { content: '..'; }
+    60%, 100% { content: '...'; }
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.6; }
+    100% { opacity: 1; }
+}
+
+/* ==================== UTILITY CLASSES ==================== */
+.hidden {
+    display: none !important;
+}
+
+.text-center {
+    text-align: center;
+}
+
+.mt-20 {
+    margin-top: 20px;
+}
+
+.mb-10 {
+    margin-bottom: 10px;
+}
+
 /* ==================== RESPONSIVE ==================== */
 @media (max-width: 480px) {
     .container {
         max-width: 100%;
         border-radius: 0;
     }
+    
     .total-display .amount {
         font-size: 28px;
     }
