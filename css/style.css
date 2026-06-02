@@ -234,6 +234,10 @@ select {
     transition: all 0.2s;
 }
 
+.order-item:hover {
+    background: #f0f0f0;
+}
+
 .order-item h4 {
     color: #333;
     margin-bottom: 5px;
@@ -262,16 +266,32 @@ select {
 .status.antre {
     background: #FFF3CD;
     color: #856404;
+    border: 1px solid #ffeeba;
 }
 
 .status.proses {
     background: #CCE5FF;
     color: #004085;
+    border: 1px solid #b8daff;
 }
 
 .status.selesai {
     background: #D4EDDA;
     color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.status-dropdown {
+    appearance: none;
+    padding: 4px 20px 4px 10px;
+    border-radius: 15px;
+    font-size: 11px;
+    border: 1px solid #ddd;
+    background-color: white;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24'%3E%3Cpath fill='%23666' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 6px center;
+    cursor: pointer;
 }
 
 /* ==================== TOTAL DISPLAY ==================== */
@@ -294,6 +314,42 @@ select {
 .total-display .amount {
     font-size: 32px;
     font-weight: bold;
+    letter-spacing: 1px;
+}
+
+/* ==================== SUMMARY GRID ==================== */
+.summary-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.summary-box {
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    text-align: center;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    border: 1px solid #eee;
+}
+
+.summary-box .icon {
+    font-size: 32px;
+    margin-bottom: 10px;
+}
+
+.summary-box .value {
+    font-size: 18px;
+    font-weight: bold;
+    color: #4CAF50;
+    margin-bottom: 5px;
+    word-break: break-all;
+}
+
+.summary-box .label {
+    font-size: 12px;
+    color: #888;
 }
 
 /* ==================== SWIPE HINT ==================== */
@@ -307,12 +363,14 @@ select {
     margin: 10px 0 15px 0;
     display: inline-block;
     width: 100%;
+    backdrop-filter: blur(4px);
 }
 
 /* ==================== RESPONSIVE ==================== */
 @media (max-width: 480px) {
     .container {
         max-width: 100%;
+        border-radius: 0;
     }
     .total-display .amount {
         font-size: 28px;
@@ -327,4 +385,11 @@ select {
     padding: 16px !important;
     box-shadow: 0 6px 20px rgba(255, 152, 0, 0.4) !important;
     margin-top: 15px !important;
+    border: 2px solid #fff3e0 !important;
+    letter-spacing: 0.5px;
+}
+
+.btn-save:active {
+    transform: scale(0.97);
+    box-shadow: 0 3px 10px rgba(255, 152, 0, 0.3) !important;
 }
