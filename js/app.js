@@ -305,30 +305,73 @@ function updateEstimasi(jam) {
 }
 
 // ==================== LOGIN ====================
+// ==================== LOGIN ====================
 function handleLogin() {
-    const username = document.getElementById('username').value;
-    const password = document.getElementById('password').value;
+    const usernameInput = document.getElementById('username').value.trim();
+    const passwordInput = document.getElementById('password').value.trim();
     
-    // Simple validation
-    if (username && password) {
+    // Database Akun Kasir Resmi J Laundry milik Tuan CANDRA
+    const daftarKasir = {
+        "Vinsmoke": "2026Pastijaya",
+        "Listy": "123456Kerja"
+    };
+    
+    if (daftarKasir[usernameInput] === passwordInput) {
         document.getElementById('loginScreen').style.display = 'none';
         document.getElementById('mainApp').style.display = 'block';
         
-        // Initialize
+        // Inisialisasi semua fitur premium
         initSwipe();
         loadHargaDariSheet();
         loadTransaksi();
         
-        // Auto refresh every 3 minutes
+        // Auto refresh otomatis setiap 3 menit
         setInterval(() => {
             if (sheetLoaded) loadHargaDariSheet();
             loadTransaksi();
         }, 180000);
     } else {
-        alert('Mohon masukkan username dan password!');
+        alert('Waduh, Nama Pengguna atau Kata Sandi Kasir salah, Beli sayang! 🥺 Swaha periksa kembali nggih.');
     }
 }
 
+// ==================== CLEAN FORMULA: RINGKASAN KAS & STATUS BAR ====================
+function updateSummary() {
+    // Mengambil tanggal hari ini secara universal
+    const hariIni = new Date();
+    const tanggalHariIni = `${hariIni.getDate()}/${hariIni.getMonth() + 1}/${hariIni.getFullYear()}`;
+    
+    // Memfilter transaksi yang murni terjadi hari ini saja
+    const todayTransaksi = transaksiData.filter(t => {
+        if (!t.tanggal) return false;
+        // Memotong format tanggal agar hanya mengambil bagian "dd/mm/yyyy"
+        const formatTanggalSaja = t.tanggal.split(',')[0].trim();
+        return formatTanggalSaja === tanggalHariIni;
+    });
+    
+    // Rumus hitung Pendapatan, Pengeluaran, & Saldo Bersih
+    const totalPendapatan = todayTransaksi.reduce((sum, t) => sum + (parseInt(t.total) || 0), 0);
+    const totalPengeluaran = todayTransaksi.reduce((sum, t) => sum + (parseInt(t.pengeluaran) || 0), 0);
+    const saldoBersih = totalPendapatan - totalPengeluaran;
+    
+    // Suntikkan hasil hitungan ke layar aplikasi Beli
+    const elPendapatan = document.getElementById('totalPendapatan');
+    const elPengeluaran = document.getElementById('totalPengeluaran');
+    const elSaldo = document.getElementById('saldoBersih');
+    
+    if (elPendapatan) elPendapatan.textContent = `Rp ${totalPendapatan.toLocaleString('id-ID')}`;
+    if (elPengeluaran) elPengeluaran.textContent = `Rp ${totalPengeluaran.toLocaleString('id-ID')}`;
+    if (elSaldo) elSaldo.textContent = `Rp ${saldoBersih.toLocaleString('id-ID')}`;
+    
+    // Sinkronisasi otomatis angka-angka di Status Bar Atas
+    const elAntre = document.getElementById('statusAntre');
+    const elProses = document.getElementById('statusProses');
+    const elSiap = document.getElementById('statusSiap');
+    
+    if (elAntre) elAntre.textContent = todayTransaksi.filter(t => t.status === 'Antre').length;
+    if (elProses) elProses.textContent = todayTransaksi.filter(t => t.status === 'Proses').length;
+    if (elSiap) elSiap.textContent = todayTransaksi.filter(t => t.status === 'Selesai').length;
+}
 // ==================== TRANSAKSI ====================
 async function loadTransaksi() {
     try {
