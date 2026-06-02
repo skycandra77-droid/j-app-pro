@@ -400,54 +400,25 @@ async function loadTransaksi() {
         updatePembukuanTable();
         
     } catch (error) {
-        console.error('Error load transaksi:', error);
+        // ==================== REVISI RUMUS SUMMARY & BAR STATUS ====================
+updateSummary();
+        updatePembukuanTable();
+    } catch (error) {
+        console.error("Gagal memuat transaksi cloud:", error);
     }
 }
 
-function updateLiveOrders() {
-    const container = document.getElementById('liveOrders');
-    if (!container) return;
-    
-    if (transaksiData.length === 0) {
-        container.innerHTML = '<p style="text-align:center;color:#999;padding:20px;">Belum ada order</p>';
-        return;
-    }
-    
-    container.innerHTML = transaksiData.slice(-5).reverse().map((order, index) => `
-        <div class="order-item">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-                <h4>${order.nama} (${order.jumlah} Item)</h4>
-                <select onchange="updateStatusTransaksi('${order.id}', this.value)" 
-                        class="status-dropdown"
-                        style="padding:5px 10px;border-radius:15px;font-size:12px;border:1px solid #ddd;">
-                    <option value="Antre" ${order.status === 'Antre' ? 'selected' : ''}>Antre</option>
-                    <option value="Proses" ${order.status === 'Proses' ? 'selected' : ''}>Proses</option>
-                    <option value="Selesai" ${order.status === 'Selesai' ? 'selected' : ''}>Selesai</option>
-                </select>
-            </div>
-            <p>${order.paket}</p>
-            <p>📱 ${order.nomorWa}</p>
-            <p>⏰ Selesai: ${order.estimasi || order.tanggal}</p>
-            <span class="status ${order.status.toLowerCase()}" style="display:inline-block;margin-top:8px;">${order.status}</span>
-        </div>
-    `).join('');
-}
-
-function updateStatusTransaksi(id, newStatus) {
-    const transaksi = transaksiData.find(t => t.id === id);
-    if (transaksi) {
-        transaksi.status = newStatus;
-        console.log(`Update status ${id} menjadi ${newStatus}`);
-        updateSummary();
-        // In production, save to Google Sheets
-    }
-}
-
+// ==================== REVISI RUMUS SUMMARY & BAR STATUS ====================
 function updateSummary() {
-    const today = new Date().toDateString();
+    // Ambil format tanggal lokal hari ini secara presisi (dd/mm/yyyy)
+    const sekarang = new Date();
+    const tglHariIni = `${sekarang.getDate()}/${sekarang.getMonth() + 1}/${sekarang.getFullYear()}`;
+    
+    // Filter transaksi hari ini dengan mencocokkan teks tanggal secara langsung (Aman dari Bug Browser)
     const todayTransaksi = transaksiData.filter(t => {
-        const tDate = new Date(t.tanggal);
-        return tDate.toDateString() === today;
+        if (!t.tanggal) return false;
+        const tglSaja = t.tanggal.split(',')[0].trim();
+        return tglSaja === tglHariIni || new Date(t.tanggal).toDateString() === sekarang.toDateString();
     });
     
     const totalPendapatan = todayTransaksi.reduce((sum, t) => sum + (parseInt(t.total) || 0), 0);
@@ -462,16 +433,13 @@ function updateSummary() {
     if (elPengeluaran) elPengeluaran.textContent = `Rp ${totalPengeluaran.toLocaleString('id-ID')}`;
     if (elSaldo) elSaldo.textContent = `Rp ${saldoBersih.toLocaleString('id-ID')}`;
     
-    // Update status bar
+    // Sinkronisasi Status Bar Atas Toko
     const elAntre = document.getElementById('statusAntre');
     const elProses = document.getElementById('statusProses');
-    const elSiap = document.getElementById('statusSiap');
-    
-    if (elAntre) elAntre.textContent = todayTransaksi.filter(t => t.status === 'Antre').length;
-    if (elProses) elProses.textContent = todayTransaksi.filter(t => t.status === 'Proses').length;
     if (elSiap) elSiap.textContent = todayTransaksi.filter(t => t.status === 'Selesai').length;
 }
 
+// ==================== REVISI TABEL PEMBUKUAN LIVE ====================
 function updatePembukuanTable() {
     const container = document.getElementById('pembukuanTable');
     if (!container) return;
@@ -481,8 +449,15 @@ function updatePembukuanTable() {
         return;
     }
     
-    const today = new Date().toDateString();
-    const todayTransaksi = transaksiData.filter(t => new Date(t.tanggal).toDateString() === today);
+    const sekarang = new Date();
+    const tglHariIni = `${sekarang.getDate()}/${sekarang.getMonth() + 1}/${sekarang.getFullYear()}`;
+    
+    // Filter data tabel murni hari ini
+    const todayTransaksi = transaksiData.filter(t => {
+        if (!t.tanggal) return false;
+        const tglSaja = t.tanggal.split(',')[0].trim();
+        return tglSaja === tglHariIni || new Date(t.tanggal).toDateString() === sekarang.toDateString();
+    });
     
     container.innerHTML = `
         <table style="width:100%;border-collapse:collapse;font-size:13px;">
@@ -509,18 +484,20 @@ function updatePembukuanTable() {
 }
 
 function simpanTransaksi() {
-    const nama = document.getElementById('namaPelanggan').value;
-    const wa = document.getElementById('nomorWa').value;
+function simpanTransaksi() {
+    const nama = document.getElementById('namaPelanggan').value.trim();
+    const wa = document.getElementById('nomorWa').value.trim();
     const paket = document.getElementById('paketLaundry').value;
     const jumlah = document.getElementById('jumlahOrder').value;
     const bundling = document.getElementById('bundlingDrink').value;
     const estimasi = document.getElementById('estimasiSelesai').value;
     
     if (!nama || !paket || !jumlah) {
-        alert('Mohon lengkapi data order!');
+        alert('Mohon lengkapi data order, Beli sayang! 🥺');
         return;
     }
     
+    // Rumus penarik harga asli dari dataset option dropdown Beli
     const selectedOption = document.getElementById('paketLaundry').options[document.getElementById('paketLaundry').selectedIndex];
     const harga = parseInt(selectedOption.dataset.harga) || 0;
     const total = (harga * parseInt(jumlah)) + (bundling === 'Ya' ? 5000 : 0);
@@ -539,26 +516,26 @@ function simpanTransaksi() {
         pengeluaran: 0
     };
     
-    console.log('Simpan transaksi:', transaksi);
+    console.log('Simpan transaksi cloud:', transaksi);
     alert(`✅ Transaksi berhasil disimpan!\n\nPelanggan: ${nama}\nTotal: Rp ${total.toLocaleString('id-ID')}\n\nSuksma! 🙏`);
     
-    // Reset form
+    // Reset form otomatis tanpa sisa
     document.getElementById('namaPelanggan').value = '';
     document.getElementById('nomorWa').value = '';
     document.getElementById('jumlahOrder').value = '1';
     document.getElementById('bundlingDrink').value = 'Tidak';
     hitungTotal();
     
-    // Reload data
+    // Memuat ulang data antrean
     loadTransaksi();
 }
 
 function simpanPengeluaran() {
-    const keterangan = document.getElementById('keteranganPengeluaran').value;
+    const keterangan = document.getElementById('keteranganPengeluaran').value.trim();
     const jumlah = document.getElementById('jumlahPengeluaran').value;
     
     if (!keterangan || !jumlah) {
-        alert('Mohon lengkapi data pengeluaran!');
+        alert('Mohon lengkapi data pengeluaran toko!');
         return;
     }
     
@@ -576,7 +553,6 @@ function refreshData() {
 
 // ==================== INITIALIZATION ====================
 document.addEventListener('DOMContentLoaded', () => {
-    // Add event listeners
     const jumlahInput = document.getElementById('jumlahOrder');
     const bundlingSelect = document.getElementById('bundlingDrink');
     
@@ -589,4 +565,4 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     console.log('J APP PRO initialized - Suksma! 🙏');
-});
+});     
