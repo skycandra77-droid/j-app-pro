@@ -107,7 +107,6 @@ async function loadHargaDariSheet() {
         const response = await fetch(url);
         const text = await response.text();
         
-        // Parse GViz response
         const jsonString = text.substring(47).slice(0, -2);
         const json = JSON.parse(jsonString);
         const rows = json.table.rows;
@@ -305,7 +304,7 @@ function updateEstimasi(jam) {
     input.value = selesai.toLocaleDateString('id-ID', options);
 }
 
-// ==================== LOGIN KASIR UTARA CLOUD ====================
+// ==================== LOGIN KASIR REAL SYSTEM ====================
 function handleLogin() {
     const usernameInput = document.getElementById('username').value.trim();
     const passwordInput = document.getElementById('password').value.trim();
@@ -475,47 +474,72 @@ function updatePembukuanTable() {
     `;
 }
 
+// ==================== SAFER SIMPAN TRANSACTION ====================
 function simpanTransaksi() {
-    const nama = document.getElementById('namaPelanggan').value;
-    const wa = document.getElementById('nomorWa').value;
-    const paket = document.getElementById('paketLaundry').value;
-    const jumlah = document.getElementById('jumlahOrder').value;
-    const bundling = document.getElementById('bundlingDrink').value;
-    const estimasi = document.getElementById('estimasiSelesai').value;
-    
-    if (!nama || !paket || !jumlah) {
-        alert('Mohon lengkapi data order!');
-        return;
+    try {
+        const namaEl = document.getElementById('namaPelanggan');
+        const waEl = document.getElementById('nomorWa');
+        const paketEl = document.getElementById('paketLaundry');
+        const jumlahEl = document.getElementById('jumlahOrder');
+        const bundlingEl = document.getElementById('bundlingDrink');
+        const estimasiEl = document.getElementById('estimasiSelesai');
+        
+        if (!namaEl || !paketEl || !jumlahEl) {
+            alert("Waduh Beli sayang, ada komponen form yang tidak terbaca di layar! 🥺");
+            return;
+        }
+        
+        const nama = namaEl.value.trim();
+        const wa = waEl ? waEl.value.trim() : '';
+        const paket = paketEl.value;
+        const jumlah = jumlahEl.value;
+        const bundling = bundlingEl ? bundlingEl.value : 'Tidak';
+        const estimasi = estimasiEl ? estimasiEl.value : '-';
+        
+        if (!nama || !paket || !jumlah) {
+            alert('Mohon lengkapi data order, Beli sayang! Nama, paket, dan jumlah tidak boleh kosong nggih. 🥺');
+            return;
+        }
+        
+        const selectedOption = paketEl.options[paketEl.selectedIndex];
+        if (!selectedOption) {
+            alert('Aduh, paket laundry belum terpilih dengan benar sayang!');
+            return;
+        }
+        
+        const harga = parseInt(selectedOption.dataset.harga) || 0;
+        const total = (harga * parseInt(jumlah)) + (bundling === 'Ya' ? 5000 : 0);
+        
+        const transaksi = {
+            id: `nota-${Date.now()}`,
+            tanggal: new Date().toLocaleString('id-ID'),
+            nomorWa: wa,
+            namaPelanggan: nama,
+            jumlahOrder: jumlah,
+            paketLaundry: selectedOption.textContent,
+            bundlingDrink: bundling,
+            totalHarga: total,
+            estimasiSelesai: estimasi,
+            statusNota: 'Antre',
+            pengeluaran: 0
+        };
+        
+        console.log('Simpan transaksi cloud:', transaksi);
+        alert(`✅ Transaksi berhasil disimpan!\n\nPelanggan: ${nama}\nTotal: Rp ${total.toLocaleString('id-ID')}\n\nSuksma! 🙏`);
+        
+        // Reset form otomatis
+        namaEl.value = '';
+        if (waEl) waEl.value = '';
+        jumlahEl.value = '1';
+        if (bundlingEl) bundlingEl.value = 'Tidak';
+        
+        hitungTotal();
+        loadTransaksi();
+        
+    } catch (error) {
+        alert("Aduh Tuan CANDRA kesayangan Dayu, ada error internal: " + error.message);
+        console.error(error);
     }
-    
-    const selectedOption = document.getElementById('paketLaundry').options[document.getElementById('paketLaundry').selectedIndex];
-    const harga = parseInt(selectedOption.dataset.harga) || 0;
-    const total = (harga * parseInt(jumlah)) + (bundling === 'Ya' ? 5000 : 0);
-    
-    const transaksi = {
-        id: `nota-${Date.now()}`,
-        tanggal: new Date().toLocaleString('id-ID'),
-        nomorWa: wa,
-        namaPelanggan: nama,
-        jumlahOrder: jumlah,
-        paketLaundry: selectedOption.textContent,
-        bundlingDrink: bundling,
-        totalHarga: total,
-        estimasiSelesai: estimasi,
-        statusNota: 'Antre',
-        pengeluaran: 0
-    };
-    
-    console.log('Simpan transaksi:', transaksi);
-    alert(`✅ Transaksi berhasil disimpan!\n\nPelanggan: ${nama}\nTotal: Rp ${total.toLocaleString('id-ID')}\n\nSuksma! 🙏`);
-    
-    document.getElementById('namaPelanggan').value = '';
-    document.getElementById('nomorWa').value = '';
-    document.getElementById('jumlahOrder').value = '1';
-    document.getElementById('bundlingDrink').value = 'Tidak';
-    hitungTotal();
-    
-    loadTransaksi();
 }
 
 function simpanPengeluaran() {
