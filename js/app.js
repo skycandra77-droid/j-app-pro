@@ -1,138 +1,214 @@
-// ==================== CONFIGURATION ====================
-const SHEET_ID = '1UO79VguYM9m_dWWUfxcd5OfyFayuLE89T7IvnfKUas4';
-const TARIF_SHEET = 'Tarif';
+// ============================================================
+// J APP PRO — app.js
+// Fix: login validasi, simpan transaksi ke Sheets,
+//      simpan pengeluaran ke Sheets, update status ke cloud,
+//      filter tanggal fix, tab navigation, toast notif
+// ============================================================
+
+// ==================== KONFIGURASI ====================
+const SHEET_ID        = '1UO79VguYM9m_dWWUfxcd5OfyFayuLE89T7IvnfKUas4';
+const TARIF_SHEET     = 'Tarif';
 const TRANSAKSI_SHEET = 'Transaksi';
+const LOGIN_SHEET     = 'Login';
 
-let hargaData = {};
-let sheetLoaded = false;
-let transaksiData = [];
-let currentPanel = 0; // 0 = Kasir, 1 = Ringkasan
+// Apps Script Web App URL — untuk POST data ke Google Sheets
+// Gunakan URL dari file web_url yang sudah ada
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx4ob5rOxRja80Nam0mzDIOwsmUBhXrqRKMeDPx_dWsS_DJsFlQ4EBigUZAtkgY2Evi/exec';
 
-// ==================== SWIPE SYSTEM ====================
-let touchStartX = 0;
-let touchEndX = 0;
-let isSwiping = false;
+// ==================== STATE ====================
+let hargaData      = {};
+let transaksiData  = [];
+let loginData      = [];   // data akun dari sheet Login
+let kasirAktif     = null; // { username, role }
+let sheetLoaded    = false;
+let autoRefreshTimer = null;
 
-function initSwipe() {
-    const wrapper = document.getElementById('swipeWrapper');
-    if (!wrapper) return;
-    
-    wrapper.addEventListener('touchstart', handleTouchStart, { passive: true });
-    wrapper.addEventListener('touchmove', handleTouchMove, { passive: true });
-    wrapper.addEventListener('touchend', handleTouchEnd, { passive: true });
-    
-    // Mouse support
-    wrapper.addEventListener('mousedown', handleMouseDown);
-    wrapper.addEventListener('mouseup', handleMouseUp);
-    wrapper.addEventListener('mouseleave', handleMouseUp);
+// ==================== UTILITY ====================
+
+/** Tampilkan toast notifikasi */
+function showToast(pesan, tipe = 'default', durasi = 2800) {
+    const toast = document.getElementById('toastNotif');
+    if (!toast) return;
+    toast.textContent = pesan;
+    toast.className   = `toast show ${tipe}`;
+    clearTimeout(toast._timer);
+    toast._timer = setTimeout(() => {
+        toast.className = 'toast hidden';
+    }, durasi);
 }
 
-function handleTouchStart(e) {
-    touchStartX = e.touches[0].clientX;
-    isSwiping = true;
+/** Format rupiah */
+function formatRp(angka) {
+    return 'Rp ' + parseInt(angka || 0).toLocaleString('id-ID');
 }
 
-function handleTouchMove(e) {
-    if (!isSwiping) return;
-    touchEndX = e.touches[0].clientX;
+/** Parse tanggal dari string GViz / toLocaleString Indonesia */
+function parseTanggal(str) {
+    if (!str) return null;
+    // Coba parse langsung
+    let d = new Date(str);
+    if (!isNaN(d)) return d;
+    // Format: "31/5/2026, 22.47" (id-ID)
+    const m = str.match(/(\d+)\/(\d+)\/(\d+)/);
+    if (m) return new Date(parseInt(m[3]), parseInt(m[2]) - 1, parseInt(m[1]));
+    return null;
 }
 
-function handleTouchEnd(e) {
-    if (!isSwiping) return;
-    touchEndX = e.changedTouches[0].clientX;
-    processSwipe();
-    isSwiping = false;
+/** Cek apakah string tanggal adalah hari ini */
+function isToday(str) {
+    const d = parseTanggal(str);
+    if (!d) return false;
+    const now = new Date();
+    return d.getDate()     === now.getDate()  &&
+           d.getMonth()    === now.getMonth() &&
+           d.getFullYear() === now.getFullYear();
 }
 
-function handleMouseDown(e) {
-    touchStartX = e.clientX;
-    isSwiping = true;
+// ==================== TOGGLE PASSWORD ====================
+function togglePassword() {
+    const inp = document.getElementById('password');
+    inp.type = inp.type === 'password' ? 'text' : 'password';
 }
 
-function handleMouseUp(e) {
-    if (!isSwiping) return;
-    touchEndX = e.clientX;
-    processSwipe();
-    isSwiping = false;
+// ==================== LOGIN ====================
+
+/** Load data akun dari sheet Login */
+async function loadLoginData() {
+    try {
+        const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${LOGIN_SHEET}`;
+        const res  = await fetch(url);
+        const text = await res.text();
+        const json = JSON.parse(text.substring(47).slice(0, -2));
+        loginData  = json.table.rows
+            .filter(r => r.c[0] && r.c[0].v && r.c[0].v !== 'Username')
+            .map(r => ({
+                username : (r.c[0]?.v || '').trim(),
+                password : (r.c[1]?.v || '').toString().trim(),
+                role     : (r.c[2]?.v || 'Karyawan').trim()
+            }));
+        console.log('✅ Data login berhasil dimuat:', loginData.length, 'akun');
+    } catch (e) {
+        console.warn('⚠️ Gagal load login dari sheet, pakai data lokal');
+        // Fallback hardcode sesuai sheet
+        loginData = [
+            { username: 'Vinsmoke', password: '2026Pastijaya', role: 'Admin'    },
+            { username: 'Listy',    password: '123456Kerja',   role: 'Karyawan' }
+        ];
+    }
 }
 
-function processSwipe() {
-    const diff = touchStartX - touchEndX;
-    const threshold = 50;
-    
-    if (Math.abs(diff) < threshold) return;
-    
-    const wrapper = document.getElementById('swipeWrapper');
-    const panelKasir = document.getElementById('panelKasir');
+/** Handle tombol login */
+async function handleLogin() {
+    const username = (document.getElementById('username').value || '').trim();
+    const password = (document.getElementById('password').value || '').toString().trim();
+    const errEl    = document.getElementById('loginError');
+
+    if (!username || !password) {
+        errEl.classList.remove('hidden');
+        errEl.textContent = '❌ Username dan password wajib diisi!';
+        return;
+    }
+
+    // Pastikan data login sudah dimuat
+    if (loginData.length === 0) await loadLoginData();
+
+    const akun = loginData.find(
+        a => a.username.toLowerCase() === username.toLowerCase() &&
+             a.password === password
+    );
+
+    if (!akun) {
+        errEl.classList.remove('hidden');
+        errEl.textContent = '❌ Username atau password salah!';
+        return;
+    }
+
+    // Login berhasil
+    errEl.classList.add('hidden');
+    kasirAktif = akun;
+
+    document.getElementById('loginScreen').style.display   = 'none';
+    document.getElementById('mainApp').style.display       = 'flex';
+    document.getElementById('kasirInfo').classList.remove('hidden');
+    document.getElementById('kasirNama').textContent       = `👤 ${akun.username}`;
+    document.getElementById('kasirRole').textContent       = akun.role;
+
+    // Inisialisasi
+    loadHargaDariSheet();
+    loadTransaksi();
+
+    // Auto refresh setiap 2 menit
+    if (autoRefreshTimer) clearInterval(autoRefreshTimer);
+    autoRefreshTimer = setInterval(() => {
+        loadTransaksi();
+    }, 120000);
+
+    showToast(`✅ Selamat datang, ${akun.username}!`, 'success');
+}
+
+/** Logout */
+function handleLogout() {
+    if (!confirm('Yakin ingin keluar dari sistem?')) return;
+    kasirAktif = null;
+    if (autoRefreshTimer) clearInterval(autoRefreshTimer);
+
+    document.getElementById('mainApp').style.display     = 'none';
+    document.getElementById('loginScreen').style.display = 'flex';
+    document.getElementById('kasirInfo').classList.add('hidden');
+    document.getElementById('username').value = '';
+    document.getElementById('password').value = '';
+    showToast('👋 Berhasil keluar');
+}
+
+// ==================== TAB / PANEL NAVIGATION ====================
+function gantiPanel(nama) {
+    const panelKasir     = document.getElementById('panelKasir');
     const panelRingkasan = document.getElementById('panelRingkasan');
-    
-    if (!panelKasir || !panelRingkasan) return;
-    
-    if (diff > 0) {
-        // Swipe Left - Show Ringkasan
-        panelKasir.style.transform = 'translateX(-100%)';
-        panelRingkasan.style.transform = 'translateX(0)';
-        currentPanel = 1;
-        showHint('💰 Menu Ringkasan & Pembukuan');
+    const tabKasir       = document.getElementById('tabKasir');
+    const tabRingkasan   = document.getElementById('tabRingkasan');
+
+    if (nama === 'kasir') {
+        panelKasir.classList.remove('hidden');
+        panelRingkasan.classList.add('hidden');
+        tabKasir.classList.add('active');
+        tabRingkasan.classList.remove('active');
     } else {
-        // Swipe Right - Show Kasir
-        panelKasir.style.transform = 'translateX(0)';
-        panelRingkasan.style.transform = 'translateX(100%)';
-        currentPanel = 0;
-        showHint('🧺 Kembali ke Kasir');
+        panelKasir.classList.add('hidden');
+        panelRingkasan.classList.remove('hidden');
+        tabKasir.classList.remove('active');
+        tabRingkasan.classList.add('active');
+        updateSummary();
+        updatePembukuanTable();
     }
 }
 
-function showHint(msg) {
-    let hint = document.getElementById('swipeHint');
-    if (!hint) {
-        hint = document.createElement('div');
-        hint.id = 'swipeHint';
-        hint.style.cssText = 'position:fixed;top:120px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.85);color:white;padding:12px 24px;border-radius:25px;font-size:14px;z-index:9999;box-shadow:0 4px 15px rgba(0,0,0,0.3);';
-        document.body.appendChild(hint);
-    }
-    hint.textContent = msg;
-    hint.style.opacity = '1';
-    setTimeout(() => {
-        hint.style.opacity = '0';
-        setTimeout(() => hint.remove(), 300);
-    }, 2000);
-}
-
-// ==================== GOOGLE SHEETS INTEGRATION ====================
+// ==================== LOAD HARGA ====================
 async function loadHargaDariSheet() {
     try {
         const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${TARIF_SHEET}`;
-        
-        const response = await fetch(url);
-        const text = await response.text();
-        
-        const jsonString = text.substring(47).slice(0, -2);
-        const json = JSON.parse(jsonString);
-        const rows = json.table.rows;
-        
+        const res  = await fetch(url);
+        const text = await res.text();
+        const json = JSON.parse(text.substring(47).slice(0, -2));
+
         hargaData = {};
-        rows.forEach(row => {
-            if (row.c[0] && row.c[0].v) {
+        json.table.rows.forEach(row => {
+            if (row.c[0] && row.c[0].v && row.c[0].v !== 'kategori') {
                 const item = {
-                    kategori: row.c[0]?.v || '',
-                    id: row.c[1]?.v || '',
-                    nama: row.c[2]?.v || '',
-                    harga: parseInt(row.c[3]?.v) || 0,
-                    jam: parseInt(row.c[4]?.v) || 0
+                    kategori : row.c[0]?.v || '',
+                    id       : row.c[1]?.v || '',
+                    nama     : row.c[2]?.v || '',
+                    harga    : parseInt(row.c[3]?.v) || 0,
+                    jam      : parseInt(row.c[4]?.v) || 0
                 };
-                if (item.id) {
-                    hargaData[item.id] = item;
-                }
+                if (item.id) hargaData[item.id] = item;
             }
         });
-        
+
         updateDropdownPaket();
         sheetLoaded = true;
-        console.log('✅ Harga berhasil dimuat dari Google Sheets');
-        
-    } catch (error) {
-        console.error('❌ Error load dari Sheet:', error);
+        console.log('✅ Harga dimuat:', Object.keys(hargaData).length, 'item');
+    } catch (e) {
+        console.error('❌ Gagal load harga dari sheet:', e);
         loadHargaLokal();
     }
 }
@@ -208,10 +284,10 @@ function loadHargaLokal() {
         {kategori:'SATUAN',id:'hk',nama:'SATUAN - HK — Handuk K',harga:5000,jam:0},
         {kategori:'SATUAN',id:'hs',nama:'SATUAN - HS — Handuk S',harga:8000,jam:0},
         {kategori:'SATUAN',id:'hb',nama:'SATUAN - HB — Handuk B',harga:12500,jam:0},
-        {kategori:'SATUAN',id:'pd',nama:'SATUAN - PD — UW',harga:10000,jam:0},
+        {kategori:'SATUAN',id:'pd',nama:'SATUAN - PD — Underwear',harga:10000,jam:0},
         {kategori:'SATUAN',id:'kst',nama:'SATUAN - KST — Keset',harga:5000,jam:0},
-        {kategori:'SATUAN',id:'pad',nama:'SATUAN - PAD — PD',harga:5000,jam:0},
-        {kategori:'SATUAN',id:'pack',nama:'SATUAN - PACK — PACK HD',harga:300,jam:0},
+        {kategori:'SATUAN',id:'pad',nama:'SATUAN - PAD — Pad',harga:5000,jam:0},
+        {kategori:'SATUAN',id:'pack',nama:'SATUAN - PACK — Plastik HD',harga:300,jam:0},
         {kategori:'SATUAN',id:'slk',nama:'SATUAN - SLK — Selimut Kecil',harga:7000,jam:0},
         {kategori:'SATUAN',id:'trt1',nama:'SATUAN - TRT1 — Treatment',harga:12500,jam:0},
         {kategori:'SATUAN',id:'sp',nama:'SATUAN - SP — Split',harga:7500,jam:0},
@@ -219,362 +295,404 @@ function loadHargaLokal() {
         {kategori:'SATUAN',id:'shoe1',nama:'SATUAN - SHOE1 — Sepatu Fast',harga:30000,jam:0},
         {kategori:'SATUAN',id:'shoe2',nama:'SATUAN - SHOE2 — Sepatu Deep',harga:50000,jam:0}
     ];
-    
+
     hargaData = {};
-    lokalData.forEach(d => {
-        if (d.id) hargaData[d.id] = d;
-    });
+    lokalData.forEach(d => { if (d.id) hargaData[d.id] = d; });
     updateDropdownPaket();
+    showToast('⚠️ Menggunakan data harga lokal (offline)', 'default');
 }
 
 function updateDropdownPaket() {
     const select = document.getElementById('paketLaundry');
     if (!select) return;
-    
+
     select.innerHTML = '<option value="">-- Pilih Paket Laundry --</option>';
-    
+
     const groups = {};
     Object.values(hargaData).forEach(item => {
-        if (!groups[item.kategori]) {
-            groups[item.kategori] = [];
-        }
+        if (!groups[item.kategori]) groups[item.kategori] = [];
         groups[item.kategori].push(item);
     });
-    
-    Object.keys(groups).sort().forEach(kategori => {
-        const optgroup = document.createElement('optgroup');
-        optgroup.label = `✨ ${kategori}`;
-        
-        groups[kategori].forEach(item => {
-            const option = document.createElement('option');
-            option.value = item.id;
-            option.textContent = `${item.nama} - Rp${item.harga.toLocaleString('id-ID')} ${item.jam > 0 ? `(${item.jam} jam)` : ''}`;
-            option.dataset.harga = item.harga;
-            option.dataset.jam = item.jam;
-            optgroup.appendChild(option);
+
+    Object.keys(groups).sort().forEach(kat => {
+        const og = document.createElement('optgroup');
+        og.label = `✨ ${kat}`;
+        groups[kat].forEach(item => {
+            const opt = document.createElement('option');
+            opt.value              = item.id;
+            opt.textContent        = `${item.nama} — ${formatRp(item.harga)}${item.jam > 0 ? ` (${item.jam} jam)` : ''}`;
+            opt.dataset.harga      = item.harga;
+            opt.dataset.jam        = item.jam;
+            og.appendChild(opt);
         });
-        
-        select.appendChild(optgroup);
+        select.appendChild(og);
     });
-    
-    select.addEventListener('change', hitungTotal);
 }
 
-// ==================== CALCULATION ====================
+// ==================== HITUNG TOTAL ====================
 function hitungTotal() {
-    const paketSelect = document.getElementById('paketLaundry');
-    const jumlahInput = document.getElementById('jumlahOrder');
-    const bundlingSelect = document.getElementById('bundlingDrink');
-    const totalDisplay = document.getElementById('totalTagihan');
-    
-    if (!paketSelect || !jumlahInput) return;
-    
-    const selectedOption = paketSelect.options[paketSelect.selectedIndex];
-    if (!selectedOption || !selectedOption.value) return;
+    const sel      = document.getElementById('paketLaundry');
+    const qty      = parseInt(document.getElementById('jumlahOrder').value) || 1;
+    const bundling = document.getElementById('bundlingDrink').value === 'Ya' ? 5000 : 0;
+    const opt      = sel.options[sel.selectedIndex];
+    const harga    = parseInt(opt?.dataset?.harga) || 0;
+    const total    = (harga * qty) + bundling;
 
-    const hargaSatuan = parseInt(selectedOption.dataset.harga) || 0;
-    const qty = parseInt(jumlahInput.value) || 1;
-    const bundling = (bundlingSelect && bundlingSelect.value === 'Ya') ? 5000 : 0;
-    
-    const total = (hargaSatuan * qty) + bundling;
-    
-    if (totalDisplay) {
-        totalDisplay.textContent = `Rp ${total.toLocaleString('id-ID')}`;
-    }
-    
-    updateEstimasi(selectedOption.dataset.jam);
-}
+    document.getElementById('totalTagihan').textContent = formatRp(total);
 
-function updateEstimasi(jam) {
-    const input = document.getElementById('estimasiSelesai');
-    if (!input) return;
-    if (!jam || jam == 0) {
-        input.value = '-';
-        return;
-    }
-    
-    const selesai = new Date(Date.now() + (jam * 60 * 60 * 1000));
-    const options = { 
-        weekday: 'short', 
-        day: 'numeric', 
-        month: 'short', 
-        hour: '2-digit', 
-        minute: '2-digit' 
-    };
-    input.value = selesai.toLocaleDateString('id-ID', options);
-}
-
-// ==================== LOGIN KASIR REAL SYSTEM ====================
-function handleLogin() {
-    const usernameInput = document.getElementById('username').value.trim();
-    const passwordInput = document.getElementById('password').value.trim();
-    
-    const daftarKasir = {
-        "Vinsmoke": "2026Pastijaya",
-        "Listy": "123456Kerja"
-    };
-    
-    if (daftarKasir[usernameInput] === passwordInput) {
-        document.getElementById('loginScreen').style.display = 'none';
-        document.getElementById('mainApp').style.display = 'block';
-        
-        initSwipe();
-        loadHargaDariSheet();
-        loadTransaksi();
-        
-        setInterval(() => {
-            if (sheetLoaded) loadHargaDariSheet();
-            loadTransaksi();
-        }, 180000);
+    const jam = parseInt(opt?.dataset?.jam) || 0;
+    if (jam > 0) {
+        const selesai = new Date(Date.now() + jam * 3600 * 1000);
+        document.getElementById('estimasiSelesai').value =
+            selesai.toLocaleDateString('id-ID', {
+                weekday:'short', day:'numeric', month:'short',
+                hour:'2-digit', minute:'2-digit'
+            });
     } else {
-        alert('Waduh, Nama Pengguna atau Kata Sandi Kasir salah, Beli sayang! 🥺 Swaha periksa kembali nggih.');
+        document.getElementById('estimasiSelesai').value = 'Sesuai kesepakatan';
     }
 }
 
-// ==================== TRANSAKSI ====================
+// ==================== LOAD TRANSAKSI ====================
 async function loadTransaksi() {
     try {
-        const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${TRANSAKSI_SHEET}`;
-        const response = await fetch(url);
-        const text = await response.text();
-        const jsonString = text.substring(47).slice(0, -2);
-        const json = JSON.parse(jsonString);
-        
-        transaksiData = json.table.rows.filter(row => row.c[0]).map(row => ({
-            id: row.c[0]?.v || '',
-            tanggal: row.c[1]?.v || '',
-            nomorWa: row.c[2]?.v || '',
-            nama: row.c[3]?.v || '',
-            jumlah: row.c[4]?.v || 0,
-            paket: row.c[5]?.v || '',
-            bundling: row.c[6]?.v || '',
-            total: row.c[7]?.v || 0,
-            estimasi: row.c[8]?.v || '',
-            status: row.c[9]?.v || 'Antre',
-            pengeluaran: row.c[10]?.v || 0
-        }));
-        
+        const url  = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${TRANSAKSI_SHEET}&_=${Date.now()}`;
+        const res  = await fetch(url);
+        const text = await res.text();
+        const json = JSON.parse(text.substring(47).slice(0, -2));
+
+        transaksiData = json.table.rows
+            .filter(r => r.c[0] && r.c[0].v)
+            .map(r => ({
+                id          : r.c[0]?.v  || '',
+                tanggal     : r.c[1]?.v  || r.c[1]?.f || '',
+                nomorWa     : r.c[2]?.v  || '',
+                nama        : r.c[3]?.v  || '',
+                jumlah      : r.c[4]?.v  || 0,
+                paket       : r.c[5]?.v  || '',
+                bundling    : r.c[6]?.v  || '',
+                total       : parseInt(r.c[7]?.v) || 0,
+                estimasi    : r.c[8]?.v  || '',
+                status      : r.c[9]?.v  || 'Antre',
+                pengeluaran : parseInt(r.c[10]?.v) || 0
+            }));
+
         updateLiveOrders();
         updateSummary();
-        updatePembukuanTable();
-        
-    } catch (error) {
-        console.error('Error load transaksi:', error);
+        console.log('✅ Transaksi dimuat:', transaksiData.length, 'baris');
+    } catch (e) {
+        console.error('❌ Gagal load transaksi:', e);
+        document.getElementById('liveOrders').innerHTML =
+            '<p style="text-align:center;color:#94a3b8;padding:20px;font-size:13px;">⚠️ Gagal memuat data. Cek koneksi internet.</p>';
     }
 }
 
+// ==================== LIVE ORDERS ====================
 function updateLiveOrders() {
     const container = document.getElementById('liveOrders');
     if (!container) return;
-    
-    if (transaksiData.length === 0) {
-        container.innerHTML = '<p style="text-align:center;color:#999;padding:20px;">Belum ada order</p>';
+
+    // Ambil order hari ini, urutkan terbaru di atas, max 8
+    const todayOrders = transaksiData
+        .filter(t => isToday(t.tanggal))
+        .slice(-8)
+        .reverse();
+
+    if (todayOrders.length === 0) {
+        container.innerHTML = '<p style="text-align:center;color:#94a3b8;padding:20px;font-size:13px;">📭 Belum ada order hari ini</p>';
         return;
     }
-    
-    container.innerHTML = transaksiData.slice(-5).reverse().map((order) => `
+
+    container.innerHTML = todayOrders.map(order => `
         <div class="order-item">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-                <h4>${order.nama} (${order.jumlah} Item)</h4>
-                <select onchange="updateStatusTransaksi('${order.id}', this.value)" 
-                        class="status-dropdown"
-                        style="padding:5px 10px;border-radius:15px;font-size:12px;border:1px solid #ddd;">
-                    <option value="Antre" ${order.status === 'Antre' ? 'selected' : ''}>Antre</option>
-                    <option value="Proses" ${order.status === 'Proses' ? 'selected' : ''}>Proses</option>
+            <div class="order-item-top">
+                <h4>🧺 ${order.nama} <span style="font-weight:600;color:#64748b;font-size:12px;">(${order.jumlah} item)</span></h4>
+                <select onchange="updateStatusTransaksi('${order.id}', this.value)"
+                        class="status-dropdown">
+                    <option value="Antre"   ${order.status === 'Antre'   ? 'selected' : ''}>Antre</option>
+                    <option value="Proses"  ${order.status === 'Proses'  ? 'selected' : ''}>Proses</option>
                     <option value="Selesai" ${order.status === 'Selesai' ? 'selected' : ''}>Selesai</option>
                 </select>
             </div>
-            <p>${order.paket}</p>
-            <p>📱 ${order.nomorWa}</p>
-            <p>⏰ Selesai: ${order.estimasi || order.tanggal}</p>
-            <span class="status ${order.status.toLowerCase()}" style="display:inline-block;margin-top:8px;">${order.status}</span>
+            <p>📦 ${order.paket}</p>
+            <p>📱 ${order.nomorWa || '—'} &nbsp;|&nbsp; 💵 <strong>${formatRp(order.total)}</strong></p>
+            <p>⏰ Selesai: ${order.estimasi || '—'}</p>
+            <span class="status-badge ${order.status.toLowerCase()}">${order.status}</span>
         </div>
     `).join('');
 }
 
-function updateStatusTransaksi(id, newStatus) {
-    const transaksi = transaksiData.find(t => t.id === id);
-    if (transaksi) {
-        transaksi.status = newStatus;
-        console.log(`Update status ${id} menjadi ${newStatus}`);
-        updateSummary();
+// ==================== UPDATE STATUS KE CLOUD ====================
+async function updateStatusTransaksi(id, newStatus) {
+    // Update lokal dulu (responsif)
+    const t = transaksiData.find(x => x.id === id);
+    if (t) t.status = newStatus;
+    updateSummary();
+
+    // Kirim ke Apps Script
+    try {
+        const payload = {
+            action  : 'updateStatus',
+            id      : id,
+            status  : newStatus,
+            kasir   : kasirAktif?.username || 'unknown'
+        };
+        await fetch(APPS_SCRIPT_URL, {
+            method : 'POST',
+            mode   : 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body   : JSON.stringify(payload)
+        });
+        showToast(`✅ Status diperbarui: ${newStatus}`, 'success');
+    } catch (e) {
+        console.error('❌ Gagal update status ke cloud:', e);
+        showToast('⚠️ Update status gagal disimpan ke cloud', 'error');
     }
 }
 
-function updateSummary() {
-    const sekarang = new Date();
-    const tglHariIni = `${sekarang.getDate()}/${sekarang.getMonth() + 1}/${sekarang.getFullYear()}`;
-    
-    const todayTransaksi = transaksiData.filter(t => {
-        if (!t.tanggal) return false;
-        const tglSaja = t.tanggal.split(',')[0].trim();
-        return tglSaja === tglHariIni || new Date(t.tanggal).toDateString() === sekarang.toDateString();
-    });
-    
-    const totalPendapatan = todayTransaksi.reduce((sum, t) => sum + (parseInt(t.total) || 0), 0);
-    const totalPengeluaran = todayTransaksi.reduce((sum, t) => sum + (parseInt(t.pengeluaran) || 0), 0);
-    const saldoBersih = totalPendapatan - totalPengeluaran;
-    
-    const elPendapatan = document.getElementById('totalPendapatan');
-    const elPengeluaran = document.getElementById('totalPengeluaran');
-    const elSaldo = document.getElementById('saldoBersih');
-    
-    if (elPendapatan) elPendapatan.textContent = `Rp ${totalPendapatan.toLocaleString('id-ID')}`;
-    if (elPengeluaran) elPengeluaran.textContent = `Rp ${totalPengeluaran.toLocaleString('id-ID')}`;
-    if (elSaldo) elSaldo.textContent = `Rp ${saldoBersih.toLocaleString('id-ID')}`;
-    
-    const elAntre = document.getElementById('statusAntre');
-    const elProses = document.getElementById('statusProses');
-    const elSiap = document.getElementById('statusSiap');
-    
-    if (elAntre) elAntre.textContent = todayTransaksi.filter(t => t.status === 'Antre').length;
-    if (elProses) elProses.textContent = todayTransaksi.filter(t => t.status === 'Proses').length;
-    if (elSiap) elSiap.textContent = todayTransaksi.filter(t => t.status === 'Selesai').length;
+// ==================== SIMPAN TRANSAKSI KE SHEETS ====================
+async function simpanTransaksi() {
+    const nama     = document.getElementById('namaPelanggan').value.trim();
+    const wa       = document.getElementById('nomorWa').value.trim();
+    const paketEl  = document.getElementById('paketLaundry');
+    const paketId  = paketEl.value;
+    const jumlah   = document.getElementById('jumlahOrder').value;
+    const bundling = document.getElementById('bundlingDrink').value;
+    const estimasi = document.getElementById('estimasiSelesai').value;
+
+    // Validasi
+    if (!nama) { showToast('❌ Nama pelanggan wajib diisi!', 'error'); return; }
+    if (!paketId) { showToast('❌ Pilih paket laundry terlebih dahulu!', 'error'); return; }
+    if (!jumlah || parseInt(jumlah) < 1) { showToast('❌ Jumlah order tidak valid!', 'error'); return; }
+
+    const opt   = paketEl.options[paketEl.selectedIndex];
+    const harga = parseInt(opt.dataset.harga) || 0;
+    const total = (harga * parseInt(jumlah)) + (bundling === 'Ya' ? 5000 : 0);
+
+    const idTransaksi = `nota-${Date.now()}`;
+    const tanggal     = new Date().toLocaleString('id-ID');
+
+    const payload = {
+        action          : 'simpanTransaksi',
+        idTransaksi     : idTransaksi,
+        tanggal         : tanggal,
+        nomorWa         : wa,
+        namaPelanggan   : nama,
+        jumlahOrder     : jumlah,
+        paketLaundry    : opt.textContent.split(' — ')[0].trim(),
+        bundlingDrink   : bundling,
+        totalHarga      : total,
+        estimasiSelesai : estimasi,
+        statusNota      : 'Antre',
+        pengeluaran     : 0,
+        kasir           : kasirAktif?.username || 'unknown'
+    };
+
+    // UI loading
+    const btn    = document.getElementById('btnSimpan');
+    const statEl = document.getElementById('simpanStatus');
+    btn.disabled = true;
+    btn.textContent = '⏳ Menyimpan...';
+    statEl.className  = 'simpan-status loading';
+    statEl.textContent = '⏳ Mengirim data ke Google Sheets...';
+    statEl.classList.remove('hidden');
+
+    try {
+        await fetch(APPS_SCRIPT_URL, {
+            method : 'POST',
+            mode   : 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body   : JSON.stringify(payload)
+        });
+
+        // Tambah ke state lokal supaya langsung terlihat
+        transaksiData.push({
+            id       : idTransaksi,
+            tanggal  : tanggal,
+            nomorWa  : wa,
+            nama     : nama,
+            jumlah   : jumlah,
+            paket    : payload.paketLaundry,
+            bundling : bundling,
+            total    : total,
+            estimasi : estimasi,
+            status   : 'Antre',
+            pengeluaran: 0
+        });
+
+        updateLiveOrders();
+        updateSummary();
+
+        statEl.className  = 'simpan-status success';
+        statEl.textContent = `✅ Order ${nama} berhasil disimpan! Total: ${formatRp(total)}`;
+        showToast(`✅ Order ${nama} tersimpan!`, 'success');
+
+        // Reset form
+        document.getElementById('namaPelanggan').value  = '';
+        document.getElementById('nomorWa').value        = '';
+        document.getElementById('jumlahOrder').value    = '1';
+        document.getElementById('bundlingDrink').value  = 'Tidak';
+        document.getElementById('paketLaundry').value   = '';
+        document.getElementById('totalTagihan').textContent = 'Rp 0';
+        document.getElementById('estimasiSelesai').value = '';
+
+        // Sembunyikan status setelah 4 detik
+        setTimeout(() => statEl.classList.add('hidden'), 4000);
+
+        // Reload dari cloud setelah 3 detik
+        setTimeout(() => loadTransaksi(), 3000);
+
+    } catch (e) {
+        console.error('❌ Gagal simpan transaksi:', e);
+        statEl.className  = 'simpan-status error';
+        statEl.textContent = '❌ Gagal menyimpan. Cek koneksi internet!';
+        showToast('❌ Gagal menyimpan ke cloud!', 'error');
+    } finally {
+        btn.disabled    = false;
+        btn.textContent = '✅ SIMPAN ORDER';
+    }
 }
 
+// ==================== SIMPAN PENGELUARAN ====================
+async function simpanPengeluaran() {
+    const keterangan = document.getElementById('keteranganPengeluaran').value.trim();
+    const jumlah     = document.getElementById('jumlahPengeluaran').value;
+
+    if (!keterangan) { showToast('❌ Keterangan pengeluaran wajib diisi!', 'error'); return; }
+    if (!jumlah || parseInt(jumlah) <= 0) { showToast('❌ Jumlah pengeluaran tidak valid!', 'error'); return; }
+
+    const payload = {
+        action      : 'simpanPengeluaran',
+        tanggal     : new Date().toLocaleString('id-ID'),
+        keterangan  : keterangan,
+        jumlah      : parseInt(jumlah),
+        kasir       : kasirAktif?.username || 'unknown'
+    };
+
+    const btn    = document.getElementById('btnPengeluaran');
+    const statEl = document.getElementById('pengeluaranStatus');
+    btn.disabled    = true;
+    btn.textContent = '⏳ Menyimpan...';
+    statEl.className  = 'simpan-status loading';
+    statEl.textContent = '⏳ Mengirim data...';
+    statEl.classList.remove('hidden');
+
+    try {
+        await fetch(APPS_SCRIPT_URL, {
+            method : 'POST',
+            mode   : 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body   : JSON.stringify(payload)
+        });
+
+        statEl.className  = 'simpan-status success';
+        statEl.textContent = `✅ Pengeluaran ${formatRp(jumlah)} untuk "${keterangan}" tersimpan!`;
+        showToast(`✅ Pengeluaran ${formatRp(jumlah)} dicatat!`, 'success');
+
+        document.getElementById('keteranganPengeluaran').value = '';
+        document.getElementById('jumlahPengeluaran').value     = '';
+
+        setTimeout(() => statEl.classList.add('hidden'), 4000);
+        setTimeout(() => loadTransaksi(), 3000);
+
+    } catch (e) {
+        console.error('❌ Gagal simpan pengeluaran:', e);
+        statEl.className  = 'simpan-status error';
+        statEl.textContent = '❌ Gagal menyimpan. Cek koneksi!';
+        showToast('❌ Gagal menyimpan pengeluaran!', 'error');
+    } finally {
+        btn.disabled    = false;
+        btn.textContent = 'SIMPAN PENGELUARAN';
+    }
+}
+
+// ==================== UPDATE SUMMARY ====================
+function updateSummary() {
+    const todayData = transaksiData.filter(t => isToday(t.tanggal));
+
+    const totalPendapatan  = todayData.reduce((s, t) => s + (t.total || 0), 0);
+    const totalPengeluaran = todayData.reduce((s, t) => s + (t.pengeluaran || 0), 0);
+    const saldoBersih      = totalPendapatan - totalPengeluaran;
+
+    const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+
+    set('totalPendapatan', formatRp(totalPendapatan));
+    set('totalPengeluaran', formatRp(totalPengeluaran));
+    set('saldoBersih', formatRp(saldoBersih));
+    set('statusOmset', formatRp(totalPendapatan));
+
+    set('statusAntre',  todayData.filter(t => t.status === 'Antre').length);
+    set('statusProses', todayData.filter(t => t.status === 'Proses').length);
+    set('statusSiap',   todayData.filter(t => t.status === 'Selesai').length);
+
+    // Warna saldo bersih
+    const saldoEl = document.getElementById('saldoBersih');
+    if (saldoEl) {
+        saldoEl.style.color = saldoBersih >= 0 ? '#ffffff' : '#fca5a5';
+    }
+}
+
+// ==================== TABEL PEMBUKUAN ====================
 function updatePembukuanTable() {
     const container = document.getElementById('pembukuanTable');
     if (!container) return;
-    
-    if (transaksiData.length === 0) {
-        container.innerHTML = '<p style="text-align:center;color:#999;padding:20px;">Belum ada data pembukuan</p>';
+
+    const todayData = transaksiData
+        .filter(t => isToday(t.tanggal))
+        .reverse();
+
+    if (todayData.length === 0) {
+        container.innerHTML = '<p style="text-align:center;color:#94a3b8;padding:20px;font-size:13px;">📭 Belum ada data hari ini</p>';
         return;
     }
-    
-    const sekarang = new Date();
-    const tglHariIni = `${sekarang.getDate()}/${sekarang.getMonth() + 1}/${sekarang.getFullYear()}`;
-    
-    const todayTransaksi = transaksiData.filter(t => {
-        if (!t.tanggal) return false;
-        const tglSaja = t.tanggal.split(',')[0].trim();
-        return tglSaja === tglHariIni || new Date(t.tanggal).toDateString() === sekarang.toDateString();
-    });
-    
+
     container.innerHTML = `
-        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <div style="overflow-x:auto;">
+        <table class="tabel-pembukuan">
             <thead>
-                <tr style="background:#4CAF50;color:white;">
-                    <th style="padding:10px;text-align:left;">Waktu</th>
-                    <th style="padding:10px;text-align:left;">Pelanggan</th>
-                    <th style="padding:10px;text-align:right;">Total</th>
-                    <th style="padding:10px;text-align:center;">Status</th>
+                <tr>
+                    <th>Waktu</th>
+                    <th>Pelanggan</th>
+                    <th style="text-align:right;">Total</th>
+                    <th style="text-align:center;">Status</th>
                 </tr>
             </thead>
             <tbody>
-                ${todayTransaksi.map(t => `
-                    <tr style="border-bottom:1px solid #eee;">
-                        <td style="padding:10px;">${t.tanggal}</td>
-                        <td style="padding:10px;">${t.nama}</td>
-                        <td style="padding:10px;text-align:right;">Rp ${parseInt(t.total).toLocaleString('id-ID')}</td>
-                        <td style="padding:10px;text-align:center;"><span class="status ${t.status.toLowerCase()}">${t.status}</span></td>
+                ${todayData.map(t => `
+                    <tr>
+                        <td style="white-space:nowrap;font-size:11px;">${t.tanggal}</td>
+                        <td><strong>${t.nama}</strong></td>
+                        <td style="text-align:right;font-weight:700;color:#1a56db;">${formatRp(t.total)}</td>
+                        <td style="text-align:center;">
+                            <span class="status-badge ${t.status.toLowerCase()}">${t.status}</span>
+                        </td>
                     </tr>
                 `).join('')}
             </tbody>
         </table>
+        </div>
     `;
 }
 
-// ==================== SAFER SIMPAN TRANSACTION ====================
-function simpanTransaksi() {
-    try {
-        const namaEl = document.getElementById('namaPelanggan');
-        const waEl = document.getElementById('nomorWa');
-        const paketEl = document.getElementById('paketLaundry');
-        const jumlahEl = document.getElementById('jumlahOrder');
-        const bundlingEl = document.getElementById('bundlingDrink');
-        const estimasiEl = document.getElementById('estimasiSelesai');
-        
-        if (!namaEl || !paketEl || !jumlahEl) {
-            alert("Waduh Beli sayang, ada komponen form yang tidak terbaca di layar! 🥺");
-            return;
-        }
-        
-        const nama = namaEl.value.trim();
-        const wa = waEl ? waEl.value.trim() : '';
-        const paket = paketEl.value;
-        const jumlah = jumlahEl.value;
-        const bundling = bundlingEl ? bundlingEl.value : 'Tidak';
-        const estimasi = estimasiEl ? estimasiEl.value : '-';
-        
-        if (!nama || !paket || !jumlah) {
-            alert('Mohon lengkapi data order, Beli sayang! Nama, paket, dan jumlah tidak boleh kosong nggih. 🥺');
-            return;
-        }
-        
-        const selectedOption = paketEl.options[paketEl.selectedIndex];
-        if (!selectedOption) {
-            alert('Aduh, paket laundry belum terpilih dengan benar sayang!');
-            return;
-        }
-        
-        const harga = parseInt(selectedOption.dataset.harga) || 0;
-        const total = (harga * parseInt(jumlah)) + (bundling === 'Ya' ? 5000 : 0);
-        
-        const transaksi = {
-            id: `nota-${Date.now()}`,
-            tanggal: new Date().toLocaleString('id-ID'),
-            nomorWa: wa,
-            namaPelanggan: nama,
-            jumlahOrder: jumlah,
-            paketLaundry: selectedOption.textContent,
-            bundlingDrink: bundling,
-            totalHarga: total,
-            estimasiSelesai: estimasi,
-            statusNota: 'Antre',
-            pengeluaran: 0
-        };
-        
-        console.log('Simpan transaksi cloud:', transaksi);
-        alert(`✅ Transaksi berhasil disimpan!\n\nPelanggan: ${nama}\nTotal: Rp ${total.toLocaleString('id-ID')}\n\nSuksma! 🙏`);
-        
-        // Reset form otomatis
-        namaEl.value = '';
-        if (waEl) waEl.value = '';
-        jumlahEl.value = '1';
-        if (bundlingEl) bundlingEl.value = 'Tidak';
-        
-        hitungTotal();
-        loadTransaksi();
-        
-    } catch (error) {
-        alert("Aduh Tuan CANDRA kesayangan Dayu, ada error internal: " + error.message);
-        console.error(error);
-    }
-}
-
-function simpanPengeluaran() {
-    const keterangan = document.getElementById('keteranganPengeluaran').value;
-    const jumlah = document.getElementById('jumlahPengeluaran').value;
-    
-    if (!keterangan || !jumlah) {
-        alert('Mohon lengkapi data pengeluaran!');
-        return;
-    }
-    
-    alert(`✅ Pengeluaran Rp ${parseInt(jumlah).toLocaleString('id-ID')} untuk "${keterangan}" berhasil dicatat!`);
-    document.getElementById('keteranganPengeluaran').value = '';
-    document.getElementById('jumlahPengeluaran').value = '';
-    loadTransaksi();
-}
-
+// ==================== REFRESH ====================
 function refreshData() {
     loadHargaDariSheet();
     loadTransaksi();
-    alert('🔄 Data berhasil di-refresh dari Cloud!');
+    showToast('🔄 Memuat ulang data dari cloud...', 'default');
 }
 
-// ==================== INITIALIZATION ====================
+// ==================== INIT ====================
 document.addEventListener('DOMContentLoaded', () => {
-    const jumlahInput = document.getElementById('jumlahOrder');
-    const bundlingSelect = document.getElementById('bundlingDrink');
-    
-    if (jumlahInput) {
-        jumlahInput.addEventListener('input', hitungTotal);
-    }
-    
-    if (bundlingSelect) {
-        bundlingSelect.addEventListener('change', hitungTotal);
-    }
-    
-    console.log('J APP PRO initialized - Suksma! 🙏');
+    // Load data login saat halaman pertama dibuka
+    loadLoginData();
+
+    // Enter key di form login
+    ['username', 'password'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('keydown', e => {
+            if (e.key === 'Enter') handleLogin();
+        });
+    });
+
+    console.log('🚀 J APP PRO initialized!');
 });
