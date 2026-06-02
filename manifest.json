@@ -11,7 +11,7 @@
   ],
   "start_url": "/j-app-pro/index.html",
   "background_color": "#0052CC",
-  "theme-color": "#0052CC",
+  "theme_color": "#0052CC",
   "display": "standalone",
   "orientation": "portrait"
 }
