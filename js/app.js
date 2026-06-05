@@ -1,5 +1,6 @@
 // ============================================================
-// J APP PRO — app.js
+// J APP PRO — app.js (UPDATED)
+// ✨ Multiple items per transaksi
 // Fix lengkap: modal konfirmasi status, warna dropdown,
 // order selesai tetap muncul (redup), proteksi double-submit,
 // tombol print per order, filter tanggal fix
@@ -17,6 +18,7 @@ let transaksiData    = [];
 let loginData        = [];
 let kasirAktif       = null;
 let autoRefreshTimer = null;
+let cartItems        = []; // ✨ BARU: Menyimpan items di cart
 
 // State modal konfirmasi status
 let _pendingStatusId   = null;
@@ -135,6 +137,7 @@ function handleLogout() {
     document.getElementById('kasirInfo').classList.add('hidden');
     document.getElementById('username').value = '';
     document.getElementById('password').value = '';
+    cartItems = []; // ✨ Reset cart
     showToast('👋 Berhasil keluar');
 }
 
@@ -298,20 +301,88 @@ function updateDropdownPaket() {
     });
 }
 
+// ==================== ✨ CART FUNCTIONS (BARU) ====================
+function tambahItemKeCart() {
+    const paketEl  = document.getElementById('paketLaundry');
+    const paketId  = paketEl.value;
+    const jumlah   = parseInt(document.getElementById('jumlahOrder').value) || 1;
+
+    if (!paketId) {
+        showToast('❌ Pilih paket dulu!', 'error');
+        return;
+    }
+
+    const opt   = paketEl.options[paketEl.selectedIndex];
+    const harga = parseInt(opt?.dataset?.harga) || 0;
+    const nama  = opt?.textContent?.split(' — ')[0] || '';
+
+    cartItems.push({
+        id: paketId,
+        nama: nama,
+        harga: harga,
+        jumlah: jumlah,
+        subtotal: harga * jumlah
+    });
+
+    // Reset input
+    document.getElementById('paketLaundry').value = '';
+    document.getElementById('jumlahOrder').value = '1';
+
+    updateCartDisplay();
+    hitungTotal();
+    showToast(`✅ Item ditambahkan: ${nama}`, 'success');
+}
+
+function hapusItemDariCart(index) {
+    if (index < 0 || index >= cartItems.length) return;
+    const item = cartItems[index];
+    cartItems.splice(index, 1);
+    updateCartDisplay();
+    hitungTotal();
+    showToast(`🗑️ ${item.nama} dihapus`, 'default');
+}
+
+function updateCartDisplay() {
+    const container = document.getElementById('cartItems');
+    if (!container) return;
+
+    if (cartItems.length === 0) {
+        container.innerHTML = '<p style="text-align: center; color: #94a3b8; font-size: 13px;">📭 Belum ada item</p>';
+        return;
+    }
+
+    container.innerHTML = cartItems.map((item, idx) => `
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+            <div style="flex: 1;">
+                <div style="font-weight: 600; color: #1e293b; font-size: 14px;">${item.nama}</div>
+                <div style="color: #64748b; font-size: 12px;">
+                    ${item.jumlah}x ${formatRp(item.harga)} = <strong>${formatRp(item.subtotal)}</strong>
+                </div>
+            </div>
+            <button type="button" onclick="hapusItemDariCart(${idx})" class="btn-remove" style="background: #fee2e2; color: #dc2626; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px;">🗑️ Hapus</button>
+        </div>
+    `).join('');
+}
+
 // ==================== HITUNG TOTAL ====================
 function hitungTotal() {
-    const sel      = document.getElementById('paketLaundry');
-    const qty      = parseInt(document.getElementById('jumlahOrder').value) || 1;
+    let totalItems = 0;
+    cartItems.forEach(item => { totalItems += item.subtotal; });
+
     const bundling = document.getElementById('bundlingDrink').value === 'Ya' ? 5000 : 0;
-    const opt      = sel.options[sel.selectedIndex];
-    const harga    = parseInt(opt?.dataset?.harga) || 0;
-    const total    = (harga * qty) + bundling;
+    const total    = totalItems + bundling;
 
     document.getElementById('totalTagihan').textContent = formatRp(total);
 
-    const jam = parseInt(opt?.dataset?.jam) || 0;
-    if (jam > 0) {
-        const selesai = new Date(Date.now() + jam * 3600 * 1000);
+    // Hitung estimasi berdasarkan item dengan jam terpanjang
+    let maxJam = 0;
+    cartItems.forEach(item => {
+        const paket = hargaData[item.id];
+        if (paket && paket.jam > maxJam) maxJam = paket.jam;
+    });
+
+    if (maxJam > 0) {
+        const selesai = new Date(Date.now() + maxJam * 3600 * 1000);
         document.getElementById('estimasiSelesai').value =
             selesai.toLocaleDateString('id-ID', {
                 weekday:'short', day:'numeric', month:'short',
@@ -337,13 +408,15 @@ async function loadTransaksi() {
                 tanggal     : r.c[1]?.v  || r.c[1]?.f || '',
                 nomorWa     : r.c[2]?.v  || '',
                 nama        : r.c[3]?.v  || '',
-                jumlah      : r.c[4]?.v  || 0,
-                paket       : r.c[5]?.v  || '',
-                bundling    : r.c[6]?.v  || '',
-                total       : parseInt(r.c[7]?.v) || 0,
-                estimasi    : r.c[8]?.v  || '',
-                status      : r.c[9]?.v  || 'Antre',
-                pengeluaran : parseInt(r.c[10]?.v) || 0
+                item        : r.c[4]?.v  || '',
+                jumlah      : r.c[5]?.v  || 0,
+                harga       : parseInt(r.c[6]?.v) || 0,
+                subtotal    : parseInt(r.c[7]?.v) || 0,
+                bundling    : r.c[8]?.v  || '',
+                totalHarga  : parseInt(r.c[9]?.v) || 0,
+                estimasi    : r.c[10]?.v || '',
+                status      : r.c[11]?.v || 'Antre',
+                pengeluaran : parseInt(r.c[12]?.v) || 0
             }));
 
         updateLiveOrders();
@@ -360,23 +433,51 @@ function updateLiveOrders() {
     const container = document.getElementById('liveOrders');
     if (!container) return;
 
-    const todayOrders = transaksiData
-        .filter(t => isToday(t.tanggal))
-        .reverse();
+    // Group transaksi by order ID
+    const orderMap = {};
+    transaksiData.forEach(t => {
+        if (isToday(t.tanggal)) {
+            if (!orderMap[t.id]) {
+                orderMap[t.id] = {
+                    id: t.id,
+                    tanggal: t.tanggal,
+                    nomorWa: t.nomorWa,
+                    nama: t.nama,
+                    status: t.status,
+                    estimasi: t.estimasi,
+                    totalHarga: 0,
+                    items: []
+                };
+            }
+            orderMap[t.id].items.push({
+                item: t.item,
+                jumlah: t.jumlah,
+                harga: t.harga,
+                subtotal: t.subtotal
+            });
+            orderMap[t.id].totalHarga = t.totalHarga;
+        }
+    });
 
-    if (todayOrders.length === 0) {
+    const orders = Object.values(orderMap).reverse();
+
+    if (orders.length === 0) {
         container.innerHTML = '<p style="text-align:center;color:#94a3b8;padding:20px;font-size:13px;">📭 Belum ada order hari ini</p>';
         return;
     }
 
-    container.innerHTML = todayOrders.map(order => {
+    container.innerHTML = orders.map(order => {
         const sc        = order.status.toLowerCase();
         const selesaiMark = order.status === 'Selesai' ? ' ✅' : '';
+        const itemsList = order.items.map(it => 
+            `<small style="display: block; color: #64748b;">• ${it.item} (${it.jumlah}x) = ${formatRp(it.subtotal)}</small>`
+        ).join('');
+
         return `
         <div class="order-item status-${sc}-item">
             <div class="order-item-top">
                 <h4>🧺 ${order.nama}${selesaiMark}
-                    <span style="font-weight:600;color:#64748b;font-size:12px;">(${order.jumlah} item)</span>
+                    <span style="font-weight:600;color:#64748b;font-size:12px;">(${order.items.length} item)</span>
                 </h4>
                 <select id="dd-${order.id}"
                     class="status-dropdown status-${sc}"
@@ -386,8 +487,10 @@ function updateLiveOrders() {
                     <option value="Selesai" ${order.status==='Selesai'?'selected':''}>Selesai</option>
                 </select>
             </div>
-            <p>📦 ${order.paket}</p>
-            <p>📱 ${order.nomorWa||'—'} &nbsp;|&nbsp; 💵 <strong>${formatRp(order.total)}</strong></p>
+            <div style="background: #f8fafc; padding: 8px; border-radius: 6px; margin: 8px 0; font-size: 13px;">
+                ${itemsList}
+            </div>
+            <p>📱 ${order.nomorWa||'—'} &nbsp;|&nbsp; 💵 <strong>${formatRp(order.totalHarga)}</strong></p>
             <p>⏰ Selesai: ${order.estimasi||'—'}</p>
             <span class="status-badge ${sc}">${order.status}</span>
             <div class="order-action-row">
@@ -413,7 +516,7 @@ function mintaKonfirmasiStatus(id, statusBaru, dropdownEl) {
     document.getElementById('modalTitle').textContent = 'Ubah Status Order?';
     document.getElementById('modalBody').innerHTML    =
         `<strong>${order.nama}</strong><br>
-         <span style="color:#64748b;font-size:12px;">${order.paket}</span><br><br>
+         <span style="color:#64748b;font-size:12px;">${order.item}</span><br><br>
          <span style="background:#f1f5f9;padding:3px 10px;border-radius:99px;font-size:12px;">${order.status}</span>
          &nbsp;→&nbsp;
          <span style="background:#dbeafe;padding:3px 10px;border-radius:99px;font-size:12px;font-weight:700;color:#1e40af;">${statusBaru}</span>`;
@@ -445,8 +548,7 @@ async function konfirmasiStatus() {
     document.getElementById('modalOverlay').classList.add('hidden');
     _pendingStatusId = _pendingStatusBaru = _pendingStatusLama = _pendingDropdownEl = null;
 
-    const t = transaksiData.find(x => x.id === id);
-    if (t) t.status = newStatus;
+    transaksiData.forEach(t => { if (t.id === id) t.status = newStatus; });
     if (dropEl) { dropEl.value = newStatus; dropEl.className = `status-dropdown status-${newStatus.toLowerCase()}`; dropEl.disabled = false; }
 
     updateLiveOrders();
@@ -464,25 +566,15 @@ async function konfirmasiStatus() {
     }
 }
 
-// ==================== SIMPAN TRANSAKSI ====================
+// ==================== ✨ SIMPAN TRANSAKSI (UPDATED) ====================
 async function simpanTransaksi() {
     const nama     = document.getElementById('namaPelanggan').value.trim();
     const wa       = document.getElementById('nomorWa').value.trim();
-    const paketEl  = document.getElementById('paketLaundry');
-    const paketId  = paketEl.value;
-    const jumlah   = document.getElementById('jumlahOrder').value;
     const bundling = document.getElementById('bundlingDrink').value;
     const estimasi = document.getElementById('estimasiSelesai').value;
 
-    if (!nama)                            { showToast('❌ Nama pelanggan wajib diisi!', 'error'); return; }
-    if (!paketId)                         { showToast('❌ Pilih paket laundry!', 'error'); return; }
-    if (!jumlah || parseInt(jumlah) < 1)  { showToast('❌ Jumlah order tidak valid!', 'error'); return; }
-
-    const opt   = paketEl.options[paketEl.selectedIndex];
-    const harga = parseInt(opt.dataset.harga) || 0;
-    const total = (harga * parseInt(jumlah)) + (bundling === 'Ya' ? 5000 : 0);
-    const idTrx = `nota-${Date.now()}`;
-    const tgl   = new Date().toLocaleString('id-ID');
+    if (!nama)                          { showToast('❌ Nama pelanggan wajib diisi!', 'error'); return; }
+    if (cartItems.length === 0)         { showToast('❌ Tambahkan minimal 1 item!', 'error'); return; }
 
     const btn    = document.getElementById('btnSimpan');
     const statEl = document.getElementById('simpanStatus');
@@ -492,32 +584,48 @@ async function simpanTransaksi() {
     statEl.classList.remove('hidden');
 
     try {
-        await fetch(APPS_SCRIPT_URL, {
-            method:'POST', mode:'no-cors',
-            headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({
-                action:'simpanTransaksi', idTransaksi:idTrx, tanggal:tgl,
-                nomorWa:wa, namaPelanggan:nama, jumlahOrder:jumlah,
-                paketLaundry: opt.textContent.split(' — ')[0].trim(),
-                bundlingDrink:bundling, totalHarga:total,
-                estimasiSelesai:estimasi, statusNota:'Antre', pengeluaran:0,
-                kasir: kasirAktif?.username||'unknown'
-            })
-        });
+        const idTrx = `nota-${Date.now()}`;
+        const tgl   = new Date().toLocaleString('id-ID');
+        let totalHarga = 0;
+        cartItems.forEach(item => { totalHarga += item.subtotal; });
+        totalHarga += (bundling === 'Ya' ? 5000 : 0);
 
-        transaksiData.push({
-            id:idTrx, tanggal:tgl, nomorWa:wa, nama, jumlah,
-            paket: opt.textContent.split(' — ')[0].trim(),
-            bundling, total, estimasi, status:'Antre', pengeluaran:0
-        });
+        // Kirim setiap item sebagai row terpisah ke sheet
+        const itemsToSend = cartItems.map(item => ({
+            action: 'simpanTransaksiMultiple',
+            idTransaksi: idTrx,
+            tanggal: tgl,
+            nomorWa: wa,
+            namaPelanggan: nama,
+            item: item.nama,
+            jumlah: item.jumlah,
+            harga: item.harga,
+            subtotal: item.subtotal,
+            bundlingDrink: bundling,
+            totalHarga: totalHarga,
+            estimasiSelesai: estimasi,
+            statusNota: 'Antre',
+            pengeluaran: 0,
+            kasir: kasirAktif?.username || 'unknown'
+        }));
 
-        updateLiveOrders(); updateSummary();
+        for (let itemData of itemsToSend) {
+            await fetch(APPS_SCRIPT_URL, {
+                method:'POST', mode:'no-cors',
+                headers:{'Content-Type':'application/json'},
+                body: JSON.stringify(itemData)
+            });
+        }
+
+        // Update cart display dan form
+        cartItems = [];
+        updateCartDisplay();
+
         statEl.className = 'simpan-status success';
-        statEl.textContent = `✅ Order ${nama} tersimpan! Total: ${formatRp(total)}`;
+        statEl.textContent = `✅ Order ${nama} tersimpan! Total: ${formatRp(totalHarga)}`;
         showToast(`✅ Order ${nama} tersimpan!`, 'success');
 
         ['namaPelanggan','nomorWa','estimasiSelesai'].forEach(id => document.getElementById(id).value = '');
-        document.getElementById('jumlahOrder').value   = '1';
         document.getElementById('bundlingDrink').value = 'Tidak';
         document.getElementById('paketLaundry').value  = '';
         document.getElementById('totalTagihan').textContent = 'Rp 0';
@@ -578,7 +686,7 @@ async function simpanPengeluaran() {
 // ==================== UPDATE SUMMARY ====================
 function updateSummary() {
     const todayData        = transaksiData.filter(t => isToday(t.tanggal));
-    const totalPendapatan  = todayData.reduce((s,t) => s+(t.total||0), 0);
+    const totalPendapatan  = todayData.reduce((s,t) => s+(t.totalHarga||0), 0);
     const totalPengeluaran = todayData.reduce((s,t) => s+(t.pengeluaran||0), 0);
     const saldoBersih      = totalPendapatan - totalPengeluaran;
 
@@ -587,9 +695,25 @@ function updateSummary() {
     set('totalPengeluaran', formatRp(totalPengeluaran));
     set('saldoBersih',      formatRp(saldoBersih));
     set('statusOmset',      formatRp(totalPendapatan));
-    set('statusAntre',      todayData.filter(t=>t.status==='Antre').length);
-    set('statusProses',     todayData.filter(t=>t.status==='Proses').length);
-    set('statusSiap',       todayData.filter(t=>t.status==='Selesai').length);
+    
+    // Hitung status berdasarkan unique order IDs
+    const uniqueOrders = [...new Set(todayData.map(t => t.id))];
+    const antreCount = uniqueOrders.filter(id => {
+        const order = transaksiData.find(t => t.id === id);
+        return order && order.status === 'Antre';
+    }).length;
+    const prosesCount = uniqueOrders.filter(id => {
+        const order = transaksiData.find(t => t.id === id);
+        return order && order.status === 'Proses';
+    }).length;
+    const selesaiCount = uniqueOrders.filter(id => {
+        const order = transaksiData.find(t => t.id === id);
+        return order && order.status === 'Selesai';
+    }).length;
+
+    set('statusAntre',  antreCount);
+    set('statusProses', prosesCount);
+    set('statusSiap',   selesaiCount);
 
     const el = document.getElementById('saldoBersih');
     if (el) el.style.color = saldoBersih >= 0 ? '#ffffff' : '#fca5a5';
@@ -607,12 +731,13 @@ function updatePembukuanTable() {
     container.innerHTML = `
         <div style="overflow-x:auto;">
         <table class="tabel-pembukuan">
-            <thead><tr><th>Waktu</th><th>Pelanggan</th><th style="text-align:right;">Total</th><th style="text-align:center;">Status</th></tr></thead>
+            <thead><tr><th>Waktu</th><th>Pelanggan</th><th>Item</th><th style="text-align:right;">Subtotal</th><th style="text-align:center;">Status</th></tr></thead>
             <tbody>${todayData.map(t=>`
                 <tr>
                     <td style="white-space:nowrap;font-size:11px;">${t.tanggal}</td>
                     <td><strong>${t.nama}</strong></td>
-                    <td style="text-align:right;font-weight:700;color:#1a56db;">${formatRp(t.total)}</td>
+                    <td style="font-size:12px;">${t.item}</td>
+                    <td style="text-align:right;font-weight:700;color:#1a56db;">${formatRp(t.subtotal)}</td>
                     <td style="text-align:center;"><span class="status-badge ${t.status.toLowerCase()}">${t.status}</span></td>
                 </tr>`).join('')}
             </tbody>
