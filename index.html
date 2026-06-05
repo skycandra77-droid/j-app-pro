@@ -49,7 +49,7 @@
                     <label for="password">Password</label>
                     <div class="pass-wrap">
                         <input type="password" id="password" placeholder="Masukkan password" autocomplete="current-password">
-                        <button type="button" class="btn-eye" onclick="togglePassword()">👁</button>
+                        <button type="button" class="btn-eye" onclick="togglePassword()">��</button>
                     </div>
                 </div>
                 <div id="loginError" class="login-error hidden">❌ Username atau password salah!</div>
@@ -112,27 +112,47 @@
                         <label for="nomorWa">Nomor WhatsApp</label>
                         <input type="tel" id="nomorWa" placeholder="Contoh: 081234567890">
                     </div>
-                    <div class="form-group">
-                        <label for="paketLaundry">Paket Laundry</label>
-                        <select id="paketLaundry" onchange="hitungTotal()">
-                            <option value="">⏳ Memuat daftar harga...</option>
-                        </select>
+
+                    <!-- ═════ SECTION ITEM ═════ -->
+                    <div style="border-top: 2px solid #e2e8f0; padding-top: 15px; margin-top: 15px;">
+                        <h4 style="margin-bottom: 12px; color: #1e40af;">📦 Item Order</h4>
+                        
+                        <!-- Form Tambah Item -->
+                        <div class="item-form-section">
+                            <div class="form-group">
+                                <label for="paketLaundry">Pilih Paket/Item</label>
+                                <select id="paketLaundry" onchange="hitungTotal()">
+                                    <option value="">⏳ Memuat daftar harga...</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="jumlahOrder">Jumlah (Kg / Pcs)</label>
+                                <input type="number" id="jumlahOrder" value="1" min="1" oninput="hitungTotal()">
+                            </div>
+                            <button type="button" class="btn btn-secondary" onclick="tambahItemKeCart()" style="width: 100%; margin-top: 8px;">➕ TAMBAH ITEM</button>
+                        </div>
+
+                        <!-- Daftar Item di Cart -->
+                        <div id="cartItems" style="margin-top: 15px; max-height: 300px; overflow-y: auto;">
+                            <p style="text-align: center; color: #94a3b8; font-size: 13px;">📭 Belum ada item</p>
+                        </div>
+
+                        <!-- Bundling Drink -->
+                        <div class="form-group" style="margin-top: 15px;">
+                            <label for="bundlingDrink">+ Es Teh Jumbo (+Rp 5.000)</label>
+                            <select id="bundlingDrink" onchange="hitungTotal()">
+                                <option value="Tidak">Tidak</option>
+                                <option value="Ya">Ya (+Rp 5.000)</option>
+                            </select>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label for="jumlahOrder">Jumlah (Kg / Pcs)</label>
-                        <input type="number" id="jumlahOrder" value="1" min="1" oninput="hitungTotal()">
-                    </div>
-                    <div class="form-group">
-                        <label for="bundlingDrink">+ Es Teh Jumbo (+Rp 5.000)</label>
-                        <select id="bundlingDrink" onchange="hitungTotal()">
-                            <option value="Tidak">Tidak</option>
-                            <option value="Ya">Ya (+Rp 5.000)</option>
-                        </select>
-                    </div>
-                    <div class="total-display">
+
+                    <!-- Total Tagihan -->
+                    <div class="total-display" style="margin-top: 15px;">
                         <div class="label">Total Tagihan:</div>
                         <div class="amount" id="totalTagihan">Rp 0</div>
                     </div>
+
                     <div class="form-group">
                         <label for="estimasiSelesai">Estimasi Selesai</label>
                         <input type="text" id="estimasiSelesai" readonly placeholder="Otomatis dihitung">
