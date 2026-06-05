@@ -1,9 +1,6 @@
 // ============================================================
-// J APP PRO — app.js (UPDATED)
-// ✨ Multiple items per transaksi
-// Fix lengkap: modal konfirmasi status, warna dropdown,
-// order selesai tetap muncul (redup), proteksi double-submit,
-// tombol print per order, filter tanggal fix
+// J APP PRO — app.js (UPDATED v2)
+// ✨ Multiple items per transaksi + Edit Order + Separate Active/Selesai
 // ============================================================
 
 const SHEET_ID        = '1UO79VguYM9m_dWWUfxcd5OfyFayuLE89T7IvnfKUas4';
@@ -18,13 +15,17 @@ let transaksiData    = [];
 let loginData        = [];
 let kasirAktif       = null;
 let autoRefreshTimer = null;
-let cartItems        = []; // ✨ BARU: Menyimpan items di cart
+let cartItems        = [];
 
 // State modal konfirmasi status
 let _pendingStatusId   = null;
 let _pendingStatusBaru = null;
 let _pendingStatusLama = null;
 let _pendingDropdownEl = null;
+
+// ✨ State modal edit order
+let _editingOrderId = null;
+let _editingItems   = [];
 
 // ==================== UTILITY ====================
 function showToast(pesan, tipe = 'default', durasi = 2800) {
@@ -137,7 +138,7 @@ function handleLogout() {
     document.getElementById('kasirInfo').classList.add('hidden');
     document.getElementById('username').value = '';
     document.getElementById('password').value = '';
-    cartItems = []; // ✨ Reset cart
+    cartItems = [];
     showToast('👋 Berhasil keluar');
 }
 
@@ -301,7 +302,7 @@ function updateDropdownPaket() {
     });
 }
 
-// ==================== ✨ CART FUNCTIONS (BARU) ====================
+// ==================== CART FUNCTIONS ====================
 function tambahItemKeCart() {
     const paketEl  = document.getElementById('paketLaundry');
     const paketId  = paketEl.value;
@@ -324,7 +325,6 @@ function tambahItemKeCart() {
         subtotal: harga * jumlah
     });
 
-    // Reset input
     document.getElementById('paketLaundry').value = '';
     document.getElementById('jumlahOrder').value = '1';
 
@@ -374,7 +374,6 @@ function hitungTotal() {
 
     document.getElementById('totalTagihan').textContent = formatRp(total);
 
-    // Hitung estimasi berdasarkan item dengan jam terpanjang
     let maxJam = 0;
     cartItems.forEach(item => {
         const paket = hargaData[item.id];
@@ -428,7 +427,7 @@ async function loadTransaksi() {
     }
 }
 
-// ==================== LIVE ORDERS ====================
+// ==================== ✨ LIVE ORDERS (UPDATED - AKTIF vs SELESAI) ====================
 function updateLiveOrders() {
     const container = document.getElementById('liveOrders');
     if (!container) return;
@@ -466,39 +465,209 @@ function updateLiveOrders() {
         return;
     }
 
-    container.innerHTML = orders.map(order => {
-        const sc        = order.status.toLowerCase();
-        const selesaiMark = order.status === 'Selesai' ? ' ✅' : '';
-        const itemsList = order.items.map(it => 
-            `<small style="display: block; color: #64748b;">• ${it.item} (${it.jumlah}x) = ${formatRp(it.subtotal)}</small>`
-        ).join('');
+    // Pisahkan order aktif vs selesai
+    const aktif = orders.filter(o => o.status !== 'Selesai');
+    const selesai = orders.filter(o => o.status === 'Selesai');
 
-        return `
-        <div class="order-item status-${sc}-item">
-            <div class="order-item-top">
-                <h4>🧺 ${order.nama}${selesaiMark}
-                    <span style="font-weight:600;color:#64748b;font-size:12px;">(${order.items.length} item)</span>
-                </h4>
-                <select id="dd-${order.id}"
-                    class="status-dropdown status-${sc}"
-                    onchange="mintaKonfirmasiStatus('${order.id}', this.value, this)">
-                    <option value="Antre"   ${order.status==='Antre'  ?'selected':''}>Antre</option>
-                    <option value="Proses"  ${order.status==='Proses' ?'selected':''}>Proses</option>
-                    <option value="Selesai" ${order.status==='Selesai'?'selected':''}>Selesai</option>
-                </select>
+    let html = '';
+
+    // AKTIF
+    if (aktif.length > 0) {
+        html += '<h4 style="margin: 15px 0 10px 0; padding-bottom: 8px; border-bottom: 2px solid #3b82f6; color: #1e40af;">🕐 ORDER AKTIF (Antre & Proses)</h4>';
+        html += aktif.map(order => renderOrderCard(order)).join('');
+    } else {
+        html += '<p style="text-align:center;color:#94a3b8;padding:15px;font-size:13px;">✅ Semua order selesai!</p>';
+    }
+
+    // SELESAI
+    if (selesai.length > 0) {
+        html += '<h4 style="margin: 20px 0 10px 0; padding-bottom: 8px; border-bottom: 2px solid #10b981; color: #047857;">✅ ORDER SELESAI</h4>';
+        html += selesai.map(order => renderOrderCard(order, true)).join('');
+    }
+
+    container.innerHTML = html;
+}
+
+function renderOrderCard(order, isSelesai = false) {
+    const sc        = order.status.toLowerCase();
+    const selesaiMark = order.status === 'Selesai' ? ' ✅' : '';
+    const itemsList = order.items.map(it => 
+        `<small style="display: block; color: #64748b;">• ${it.item} (${it.jumlah}x) = ${formatRp(it.subtotal)}</small>`
+    ).join('');
+    
+    const opacityStyle = isSelesai ? 'opacity: 0.7;' : '';
+
+    return `
+    <div class="order-item status-${sc}-item" style="${opacityStyle}">
+        <div class="order-item-top">
+            <h4>🧺 ${order.nama}${selesaiMark}
+                <span style="font-weight:600;color:#64748b;font-size:12px;">(${order.items.length} item)</span>
+            </h4>
+            <select id="dd-${order.id}"
+                class="status-dropdown status-${sc}"
+                onchange="mintaKonfirmasiStatus('${order.id}', this.value, this)">
+                <option value="Antre"   ${order.status==='Antre'  ?'selected':''}>Antre</option>
+                <option value="Proses"  ${order.status==='Proses' ?'selected':''}>Proses</option>
+                <option value="Selesai" ${order.status==='Selesai'?'selected':''}>Selesai</option>
+            </select>
+        </div>
+        <div style="background: #f8fafc; padding: 8px; border-radius: 6px; margin: 8px 0; font-size: 13px;">
+            ${itemsList}
+        </div>
+        <p>📱 ${order.nomorWa||'—'} &nbsp;|&nbsp; 💵 <strong>${formatRp(order.totalHarga)}</strong></p>
+        <p>⏰ Selesai: ${order.estimasi||'—'}</p>
+        <span class="status-badge ${sc}">${order.status}</span>
+        <div class="order-action-row">
+            <button class="btn-print-thermal" onclick="cetakStrukThermal('${order.id}')">🖨️ Struk</button>
+            <button class="btn-print-nota"    onclick="cetakNotaPDF('${order.id}')">📄 Nota WA</button>
+            <button class="btn-edit-order"   onclick="bukaMoalEditOrder('${order.id}')" style="background: #3b82f6; color: white;">✏️ Edit</button>
+        </div>
+    </div>`;
+}
+
+// ==================== ✨ EDIT ORDER MODAL ====================
+function bukaMoalEditOrder(orderId) {
+    const order = Object.values(Object.fromEntries(
+        Object.entries(transaksiData.reduce((acc, t) => {
+            if (t.id === orderId) {
+                if (!acc[t.id]) {
+                    acc[t.id] = { id: t.id, nama: t.nama, nomorWa: t.nomorWa, tanggal: t.tanggal, items: [] };
+                }
+                acc[t.id].items.push({ item: t.item, jumlah: t.jumlah, harga: t.harga, subtotal: t.subtotal });
+            }
+            return acc;
+        }, {}))
+    ))[0];
+
+    if (!order) return;
+
+    _editingOrderId = orderId;
+    _editingItems = JSON.parse(JSON.stringify(order.items));
+
+    // Buka modal edit
+    const modalHtml = `
+    <div id="modalEditOrder" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:9999;">
+        <div style="background:white;border-radius:12px;padding:20px;max-width:500px;width:90%;max-height:80vh;overflow-y:auto;">
+            <h3 style="margin-bottom:15px;">✏️ Edit Order: ${order.nama}</h3>
+            <div id="editItemsList"></div>
+            <button type="button" onclick="tambahItemModalEdit()" class="btn btn-secondary" style="width:100%;margin:10px 0;">➕ Tambah Item</button>
+            <div style="display:flex;gap:10px;margin-top:15px;">
+                <button type="button" onclick="tutupModalEdit()" class="btn" style="flex:1;background:#94a3b8;">Batal</button>
+                <button type="button" onclick="simpanEditOrder('${orderId}')" class="btn btn-save" style="flex:1;">💾 Simpan</button>
             </div>
-            <div style="background: #f8fafc; padding: 8px; border-radius: 6px; margin: 8px 0; font-size: 13px;">
-                ${itemsList}
+        </div>
+    </div>`;
+
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    updateEditItemsList();
+}
+
+function updateEditItemsList() {
+    const container = document.getElementById('editItemsList');
+    if (!container) return;
+
+    container.innerHTML = _editingItems.map((item, idx) => `
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px;margin-bottom:10px;">
+            <div style="font-weight:600;color:#1e293b;font-size:13px;margin-bottom:5px;">${item.item}</div>
+            <div style="display:flex;gap:5px;align-items:center;margin-bottom:5px;">
+                <label style="font-size:12px;">Qty:</label>
+                <input type="number" value="${item.jumlah}" min="1" onchange="updateEditItemQty(${idx}, this.value)" style="width:50px;padding:4px;border:1px solid #ccc;border-radius:4px;"/>
+                <span style="font-size:12px;color:#64748b;">= ${formatRp(item.harga * parseInt(this.value || item.jumlah))}</span>
             </div>
-            <p>📱 ${order.nomorWa||'—'} &nbsp;|&nbsp; 💵 <strong>${formatRp(order.totalHarga)}</strong></p>
-            <p>⏰ Selesai: ${order.estimasi||'—'}</p>
-            <span class="status-badge ${sc}">${order.status}</span>
-            <div class="order-action-row">
-                <button class="btn-print-thermal" onclick="cetakStrukThermal('${order.id}')">🖨️ Struk</button>
-                <button class="btn-print-nota"    onclick="cetakNotaPDF('${order.id}')">📄 Nota WA</button>
-            </div>
-        </div>`;
-    }).join('');
+            <button type="button" onclick="hapusEditItem(${idx})" style="background:#fee2e2;color:#dc2626;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;font-size:11px;">🗑️ Hapus</button>
+        </div>
+    `).join('');
+}
+
+function updateEditItemQty(idx, qty) {
+    if (idx >= 0 && idx < _editingItems.length) {
+        _editingItems[idx].jumlah = parseInt(qty) || 1;
+        _editingItems[idx].subtotal = _editingItems[idx].harga * _editingItems[idx].jumlah;
+        updateEditItemsList();
+    }
+}
+
+function hapusEditItem(idx) {
+    _editingItems.splice(idx, 1);
+    updateEditItemsList();
+}
+
+function tambahItemModalEdit() {
+    const paketEl  = document.getElementById('paketLaundry');
+    const paketId  = paketEl.value;
+    const jumlah   = parseInt(document.getElementById('jumlahOrder').value) || 1;
+
+    if (!paketId) {
+        showToast('❌ Pilih paket dulu!', 'error');
+        return;
+    }
+
+    const opt   = paketEl.options[paketEl.selectedIndex];
+    const harga = parseInt(opt?.dataset?.harga) || 0;
+    const nama  = opt?.textContent?.split(' — ')[0] || '';
+
+    _editingItems.push({
+        item: nama,
+        jumlah: jumlah,
+        harga: harga,
+        subtotal: harga * jumlah
+    });
+
+    updateEditItemsList();
+    showToast(`✅ Item ditambahkan ke order`, 'success');
+}
+
+function tutupModalEdit() {
+    const modal = document.getElementById('modalEditOrder');
+    if (modal) modal.remove();
+    _editingOrderId = null;
+    _editingItems   = [];
+}
+
+async function simpanEditOrder(orderId) {
+    if (_editingItems.length === 0) {
+        showToast('❌ Minimal ada 1 item!', 'error');
+        return;
+    }
+
+    // Hapus order lama dari transaksiData
+    transaksiData = transaksiData.filter(t => t.id !== orderId);
+
+    // Hitung total baru
+    let totalHarga = 0;
+    _editingItems.forEach(item => { totalHarga += item.subtotal; });
+
+    // Ambil data order dari item pertama (nama, wa, etc)
+    const firstItem = transaksiData.find(t => t.id === orderId) || _editingItems[0];
+
+    // Push item baru ke apps script
+    for (let item of _editingItems) {
+        await fetch(APPS_SCRIPT_URL, {
+            method:'POST', mode:'no-cors',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({
+                action: 'simpanTransaksiMultiple',
+                idTransaksi: orderId,
+                tanggal: new Date().toLocaleString('id-ID'),
+                nomorWa: firstItem.nomorWa || '',
+                namaPelanggan: firstItem.nama || 'Unknown',
+                item: item.item,
+                jumlah: item.jumlah,
+                harga: item.harga,
+                subtotal: item.subtotal,
+                bundlingDrink: 'Tidak',
+                totalHarga: totalHarga,
+                estimasiSelesai: firstItem.estimasi || '',
+                statusNota: firstItem.status || 'Antre',
+                pengeluaran: 0,
+                kasir: kasirAktif?.username || 'unknown'
+            })
+        });
+    }
+
+    tutupModalEdit();
+    showToast('✅ Order diperbarui!', 'success');
+    setTimeout(() => loadTransaksi(), 1500);
 }
 
 // ==================== MODAL KONFIRMASI STATUS ====================
@@ -566,7 +735,7 @@ async function konfirmasiStatus() {
     }
 }
 
-// ==================== ✨ SIMPAN TRANSAKSI (UPDATED) ====================
+// ==================== SIMPAN TRANSAKSI ====================
 async function simpanTransaksi() {
     const nama     = document.getElementById('namaPelanggan').value.trim();
     const wa       = document.getElementById('nomorWa').value.trim();
@@ -590,7 +759,6 @@ async function simpanTransaksi() {
         cartItems.forEach(item => { totalHarga += item.subtotal; });
         totalHarga += (bundling === 'Ya' ? 5000 : 0);
 
-        // Kirim setiap item sebagai row terpisah ke sheet
         const itemsToSend = cartItems.map(item => ({
             action: 'simpanTransaksiMultiple',
             idTransaksi: idTrx,
@@ -617,7 +785,6 @@ async function simpanTransaksi() {
             });
         }
 
-        // Update cart display dan form
         cartItems = [];
         updateCartDisplay();
 
@@ -696,7 +863,6 @@ function updateSummary() {
     set('saldoBersih',      formatRp(saldoBersih));
     set('statusOmset',      formatRp(totalPendapatan));
     
-    // Hitung status berdasarkan unique order IDs
     const uniqueOrders = [...new Set(todayData.map(t => t.id))];
     const antreCount = uniqueOrders.filter(id => {
         const order = transaksiData.find(t => t.id === id);
