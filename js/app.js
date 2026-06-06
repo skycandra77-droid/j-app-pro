@@ -852,28 +852,44 @@ async function simpanPengeluaran() {
 
 // ==================== UPDATE SUMMARY ====================
 function updateSummary() {
-    const todayData        = transaksiData.filter(t => isToday(t.tanggal));
-    const totalPendapatan  = todayData.reduce((s,t) => s+(t.totalHarga||0), 0);
-    const totalPengeluaran = todayData.reduce((s,t) => s+(t.pengeluaran||0), 0);
-    const saldoBersih      = totalPendapatan - totalPengeluaran;
+    const todayData = transaksiData.filter(t => isToday(t.tanggal));
+
+    // Pisahkan baris pengeluaran vs baris order
+    const pengeluaranRows = todayData.filter(t => t.id.startsWith('pengeluaran-'));
+    const orderRows       = todayData.filter(t => !t.id.startsWith('pengeluaran-'));
+
+    // Pendapatan: ambil totalHarga dari 1 baris per unique order (agar tidak double-count multi-item)
+    const seenIds = new Set();
+    let totalPendapatan = 0;
+    orderRows.forEach(t => {
+        if (!seenIds.has(t.id)) {
+            seenIds.add(t.id);
+            totalPendapatan += (t.totalHarga || 0);
+        }
+    });
+
+    // Pengeluaran: jumlah kolom pengeluaran (kolom M) dari baris pengeluaran-xxx
+    const totalPengeluaran = pengeluaranRows.reduce((s, t) => s + (t.pengeluaran || 0), 0);
+
+    const saldoBersih = totalPendapatan - totalPengeluaran;
 
     const set = (id, val) => { const el = document.getElementById(id); if(el) el.textContent = val; };
     set('totalPendapatan',  formatRp(totalPendapatan));
     set('totalPengeluaran', formatRp(totalPengeluaran));
     set('saldoBersih',      formatRp(saldoBersih));
     set('statusOmset',      formatRp(totalPendapatan));
-    
-    const uniqueOrders = [...new Set(todayData.map(t => t.id))];
-    const antreCount = uniqueOrders.filter(id => {
-        const order = transaksiData.find(t => t.id === id);
+
+    const uniqueOrders = [...new Set(orderRows.map(t => t.id))];
+    const antreCount   = uniqueOrders.filter(id => {
+        const order = orderRows.find(t => t.id === id);
         return order && order.status === 'Antre';
     }).length;
-    const prosesCount = uniqueOrders.filter(id => {
-        const order = transaksiData.find(t => t.id === id);
+    const prosesCount  = uniqueOrders.filter(id => {
+        const order = orderRows.find(t => t.id === id);
         return order && order.status === 'Proses';
     }).length;
     const selesaiCount = uniqueOrders.filter(id => {
-        const order = transaksiData.find(t => t.id === id);
+        const order = orderRows.find(t => t.id === id);
         return order && order.status === 'Selesai';
     }).length;
 
@@ -894,19 +910,37 @@ function updatePembukuanTable() {
         container.innerHTML = '<p style="text-align:center;color:#94a3b8;padding:20px;font-size:13px;">📭 Belum ada data hari ini</p>';
         return;
     }
+
+    // Render tiap baris: pengeluaran tampil dengan nilai kolom pengeluaran (kolom M),
+    // baris order tampil per-item dengan subtotal item masing-masing
+    const rows = todayData.map(t => {
+        const isPengeluaran = t.id.startsWith('pengeluaran-');
+        if (isPengeluaran) {
+            const keterangan = t.nama.replace('[PENGELUARAN] ', '');
+            return `
+                <tr style="background:#fff7ed;">
+                    <td style="white-space:nowrap;font-size:11px;">${t.tanggal}</td>
+                    <td><strong style="color:#ea580c;">💸 Pengeluaran</strong></td>
+                    <td style="font-size:12px;color:#ea580c;">${keterangan}</td>
+                    <td style="text-align:right;font-weight:700;color:#dc2626;">− ${formatRp(t.pengeluaran)}</td>
+                    <td style="text-align:center;"><span class="status-badge" style="background:#fed7aa;color:#c2410c;">Pengeluaran</span></td>
+                </tr>`;
+        }
+        return `
+            <tr>
+                <td style="white-space:nowrap;font-size:11px;">${t.tanggal}</td>
+                <td><strong>${t.nama}</strong></td>
+                <td style="font-size:12px;">${t.item || '—'}</td>
+                <td style="text-align:right;font-weight:700;color:#1a56db;">${formatRp(t.subtotal)}</td>
+                <td style="text-align:center;"><span class="status-badge ${t.status.toLowerCase()}">${t.status}</span></td>
+            </tr>`;
+    }).join('');
+
     container.innerHTML = `
         <div style="overflow-x:auto;">
         <table class="tabel-pembukuan">
             <thead><tr><th>Waktu</th><th>Pelanggan</th><th>Item</th><th style="text-align:right;">Subtotal</th><th style="text-align:center;">Status</th></tr></thead>
-            <tbody>${todayData.map(t=>`
-                <tr>
-                    <td style="white-space:nowrap;font-size:11px;">${t.tanggal}</td>
-                    <td><strong>${t.nama}</strong></td>
-                    <td style="font-size:12px;">${t.item}</td>
-                    <td style="text-align:right;font-weight:700;color:#1a56db;">${formatRp(t.subtotal)}</td>
-                    <td style="text-align:center;"><span class="status-badge ${t.status.toLowerCase()}">${t.status}</span></td>
-                </tr>`).join('')}
-            </tbody>
+            <tbody>${rows}</tbody>
         </table></div>`;
 }
 
