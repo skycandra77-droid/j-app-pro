@@ -432,10 +432,10 @@ function updateLiveOrders() {
     const container = document.getElementById('liveOrders');
     if (!container) return;
 
-    // Group transaksi by order ID
+    // Group transaksi by order ID — skip baris pengeluaran
     const orderMap = {};
     transaksiData.forEach(t => {
-        if (isToday(t.tanggal)) {
+        if (isToday(t.tanggal) && !t.id.startsWith('pengeluaran-')) {
             if (!orderMap[t.id]) {
                 orderMap[t.id] = {
                     id: t.id,
