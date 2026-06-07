@@ -43,10 +43,18 @@ function formatRp(angka) {
 
 function parseTanggal(str) {
     if (!str) return null;
+    // Format gviz Google Sheets: "Date(2026,5,6,14,30,0)" — bulan 0-indexed
+    const gviz = String(str).match(/Date\((\d+),(\d+),(\d+)/);
+    if (gviz) return new Date(parseInt(gviz[1]), parseInt(gviz[2]), parseInt(gviz[3]));
+    // Format standard ISO / US
     let d = new Date(str);
     if (!isNaN(d)) return d;
-    const m = str.match(/(\d+)\/(\d+)\/(\d+)/);
+    // Format id-ID: "6/6/2026, 14.30.00" atau "6/6/2026 14.30.00"
+    const m = String(str).match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
     if (m) return new Date(parseInt(m[3]), parseInt(m[2]) - 1, parseInt(m[1]));
+    // Format "DD-MM-YYYY"
+    const m2 = String(str).match(/(\d{1,2})-(\d{1,2})-(\d{4})/);
+    if (m2) return new Date(parseInt(m2[3]), parseInt(m2[2]) - 1, parseInt(m2[1]));
     return null;
 }
 
@@ -404,7 +412,7 @@ async function loadTransaksi() {
             .filter(r => r.c[0] && r.c[0].v)
             .map(r => ({
                 id          : r.c[0]?.v  || '',
-                tanggal     : r.c[1]?.v  || r.c[1]?.f || '',
+                tanggal     : r.c[1]?.f  || r.c[1]?.v  || '',
                 nomorWa     : r.c[2]?.v  || '',
                 nama        : r.c[3]?.v  || '',
                 item        : r.c[4]?.v  || '',
@@ -572,7 +580,7 @@ function updateEditItemsList() {
             <div style="display:flex;gap:5px;align-items:center;margin-bottom:5px;">
                 <label style="font-size:12px;">Qty:</label>
                 <input type="number" value="${item.jumlah}" min="1" onchange="updateEditItemQty(${idx}, this.value)" style="width:50px;padding:4px;border:1px solid #ccc;border-radius:4px;"/>
-                <span style="font-size:12px;color:#64748b;">= ${formatRp(item.harga * parseInt(this.value || item.jumlah))}</span>
+                <span style="font-size:12px;color:#64748b;">= ${formatRp(item.subtotal)}</span>
             </div>
             <button type="button" onclick="hapusEditItem(${idx})" style="background:#fee2e2;color:#dc2626;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;font-size:11px;">🗑️ Hapus</button>
         </div>
@@ -672,7 +680,7 @@ async function simpanEditOrder(orderId) {
 
 // ==================== MODAL KONFIRMASI STATUS ====================
 function mintaKonfirmasiStatus(id, statusBaru, dropdownEl) {
-    const order = transaksiData.find(t => t.id === id);
+    const order = transaksiData.find(t => t.id === id && !t.id.startsWith('pengeluaran-'));
     if (!order || statusBaru === order.status) return;
 
     _pendingStatusId   = id;
