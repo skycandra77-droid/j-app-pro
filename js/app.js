@@ -458,7 +458,14 @@ async function loadTransaksi() {
     }
 }
 
-// ==================== ✨ LIVE ORDERS (UPDATED - AKTIF vs SELESAI) ====================
+// ==================== ✨ LIVE ORDERS ====================
+let searchQuery = '';
+
+function setSearchQuery(val) {
+    searchQuery = (val || '').toLowerCase().trim();
+    updateLiveOrders();
+}
+
 function updateLiveOrders() {
     const container = document.getElementById('liveOrders');
     if (!container) return;
@@ -469,64 +476,67 @@ function updateLiveOrders() {
         if (isToday(t.tanggal) && !t.id.startsWith('pengeluaran-')) {
             if (!orderMap[t.id]) {
                 orderMap[t.id] = {
-                    id: t.id,
-                    tanggal: t.tanggal,
-                    nomorWa: t.nomorWa,
-                    nama: t.nama,
-                    status: t.status,
-                    estimasi: t.estimasi,
-                    totalHarga: 0,
-                    items: []
+                    id: t.id, tanggal: t.tanggal, nomorWa: t.nomorWa,
+                    nama: t.nama, status: t.status, estimasi: t.estimasi,
+                    totalHarga: 0, items: []
                 };
             }
-            orderMap[t.id].items.push({
-                item: t.item,
-                jumlah: t.jumlah,
-                harga: t.harga,
-                subtotal: t.subtotal
-            });
+            orderMap[t.id].items.push({ item: t.item, jumlah: t.jumlah, harga: t.harga, subtotal: t.subtotal });
             orderMap[t.id].totalHarga = t.totalHarga;
         }
     });
 
-    const orders = Object.values(orderMap).reverse();
+    let orders = Object.values(orderMap).reverse();
+
+    // ── FIX 2: Filter berdasarkan nama/nomor wa jika ada search query ──
+    if (searchQuery) {
+        orders = orders.filter(o =>
+            o.nama.toLowerCase().includes(searchQuery) ||
+            (o.nomorWa || '').toLowerCase().includes(searchQuery) ||
+            o.items.some(it => it.item.toLowerCase().includes(searchQuery))
+        );
+    }
 
     if (orders.length === 0) {
-        container.innerHTML = '<p style="text-align:center;color:#94a3b8;padding:20px;font-size:13px;">📭 Belum ada order hari ini</p>';
+        container.innerHTML = searchQuery
+            ? `<p style="text-align:center;color:#94a3b8;padding:20px;font-size:13px;">🔍 Tidak ada order untuk "<strong>${searchQuery}</strong>"</p>`
+            : '<p style="text-align:center;color:#94a3b8;padding:20px;font-size:13px;">📭 Belum ada order hari ini</p>';
         return;
     }
 
-    // Pisahkan order aktif vs selesai
-    const aktif = orders.filter(o => o.status !== 'Selesai');
+    const aktif   = orders.filter(o => o.status !== 'Selesai');
     const selesai = orders.filter(o => o.status === 'Selesai');
 
     let html = '';
-
-    // AKTIF
     if (aktif.length > 0) {
-        html += '<h4 style="margin: 15px 0 10px 0; padding-bottom: 8px; border-bottom: 2px solid #3b82f6; color: #1e40af;">🕐 ORDER AKTIF (Antre & Proses)</h4>';
-        html += aktif.map(order => renderOrderCard(order)).join('');
+        html += `<h4 style="margin:15px 0 10px;padding-bottom:8px;border-bottom:2px solid #3b82f6;color:#1e40af;">🕐 ORDER AKTIF (${aktif.length})</h4>`;
+        html += aktif.map(o => renderOrderCard(o)).join('');
     } else {
         html += '<p style="text-align:center;color:#94a3b8;padding:15px;font-size:13px;">✅ Semua order selesai!</p>';
     }
-
-    // SELESAI
     if (selesai.length > 0) {
-        html += '<h4 style="margin: 20px 0 10px 0; padding-bottom: 8px; border-bottom: 2px solid #10b981; color: #047857;">✅ ORDER SELESAI</h4>';
-        html += selesai.map(order => renderOrderCard(order, true)).join('');
+        html += `<h4 style="margin:20px 0 10px;padding-bottom:8px;border-bottom:2px solid #10b981;color:#047857;">✅ ORDER SELESAI (${selesai.length})</h4>`;
+        html += selesai.map(o => renderOrderCard(o, true)).join('');
     }
 
     container.innerHTML = html;
 }
 
 function renderOrderCard(order, isSelesai = false) {
-    const sc        = order.status.toLowerCase();
+    const sc          = order.status.toLowerCase();
     const selesaiMark = order.status === 'Selesai' ? ' ✅' : '';
-    const itemsList = order.items.map(it => 
-        `<small style="display: block; color: #64748b;">• ${it.item} (${it.jumlah}x) = ${formatRp(it.subtotal)}</small>`
+    const itemsList   = order.items.map(it =>
+        `<small style="display:block;color:#64748b;">• ${it.item} (${it.jumlah}x) = ${formatRp(it.subtotal)}</small>`
     ).join('');
-    
-    const opacityStyle = isSelesai ? 'opacity: 0.7;' : '';
+    const opacityStyle = isSelesai ? 'opacity:0.7;' : '';
+
+    // ── FIX: tombol aksi hanya untuk order laundry, bukan pengeluaran ──
+    const actionButtons = `
+        <div class="order-action-row">
+            <button class="btn-print-thermal" onclick="cetakStrukThermal('${order.id}')">🖨️ Struk</button>
+            <button class="btn-print-nota"    onclick="cetakNotaPDF('${order.id}')">📄 Nota WA</button>
+            <button class="btn-edit-order"    onclick="bukaMoalEditOrder('${order.id}')" style="background:#3b82f6;color:white;">✏️ Edit</button>
+        </div>`;
 
     return `
     <div class="order-item status-${sc}-item" style="${opacityStyle}">
@@ -542,17 +552,13 @@ function renderOrderCard(order, isSelesai = false) {
                 <option value="Selesai" ${order.status==='Selesai'?'selected':''}>Selesai</option>
             </select>
         </div>
-        <div style="background: #f8fafc; padding: 8px; border-radius: 6px; margin: 8px 0; font-size: 13px;">
+        <div style="background:#f8fafc;padding:8px;border-radius:6px;margin:8px 0;font-size:13px;">
             ${itemsList}
         </div>
         <p>📱 ${order.nomorWa||'—'} &nbsp;|&nbsp; 💵 <strong>${formatRp(order.totalHarga)}</strong></p>
         <p>⏰ Selesai: ${order.estimasi||'—'}</p>
         <span class="status-badge ${sc}">${order.status}</span>
-        <div class="order-action-row">
-            <button class="btn-print-thermal" onclick="cetakStrukThermal('${order.id}')">🖨️ Struk</button>
-            <button class="btn-print-nota"    onclick="cetakNotaPDF('${order.id}')">📄 Nota WA</button>
-            <button class="btn-edit-order"   onclick="bukaMoalEditOrder('${order.id}')" style="background: #3b82f6; color: white;">✏️ Edit</button>
-        </div>
+        ${actionButtons}
     </div>`;
 }
 
@@ -829,7 +835,10 @@ async function simpanTransaksi() {
         document.getElementById('totalTagihan').textContent = 'Rp 0';
 
         setTimeout(() => statEl.classList.add('hidden'), 4000);
-        setTimeout(() => loadTransaksi(), 3000);
+        setTimeout(() => {
+            loadTransaksi();
+            document.getElementById('liveOrders')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 3000);
     } catch(e) {
         statEl.className = 'simpan-status error';
         statEl.textContent = '❌ Gagal menyimpan. Cek koneksi!';
