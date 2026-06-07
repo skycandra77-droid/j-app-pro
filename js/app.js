@@ -16,6 +16,7 @@ let loginData        = [];
 let kasirAktif       = null;
 let autoRefreshTimer = null;
 let cartItems        = [];
+let filterTanggal    = null; // null = hari ini, string "D/M/YYYY" = filter custom
 
 // State modal konfirmasi status
 let _pendingStatusId   = null;
@@ -61,10 +62,32 @@ function parseTanggal(str) {
 function isToday(str) {
     const d = parseTanggal(str);
     if (!d) return false;
+    // Jika ada filter tanggal aktif, cek sesuai filter
+    if (filterTanggal) {
+        const target = parseTanggal(filterTanggal);
+        if (!target) return false;
+        return d.getDate()     === target.getDate()  &&
+               d.getMonth()    === target.getMonth() &&
+               d.getFullYear() === target.getFullYear();
+    }
+    // Default: hari ini
     const now = new Date();
-    return d.getDate()     === now.getDate()  &&
-           d.getMonth()    === now.getMonth() &&
-           d.getFullYear() === now.getFullYear();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+    const isHariIni = d >= startOfToday && d <= now;
+    if (isHariIni) return true;
+    // Support shift malam 00:00-06:00: tampilkan juga data kemarin
+    if (now.getHours() < 6) {
+        const startOfYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 6, 0, 0);
+        if (d >= startOfYesterday && d < startOfToday) return true;
+    }
+    return false;
+}
+
+function setFilterTanggal(val) {
+    filterTanggal = val || null;
+    updateLiveOrders();
+    updateSummary();
+    updatePembukuanTable();
 }
 
 // ==================== TOGGLE PASSWORD ====================
