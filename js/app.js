@@ -310,26 +310,125 @@ function loadHargaLokal() {
 }
 
 function updateDropdownPaket() {
-    const select = document.getElementById('paketLaundry');
-    if (!select) return;
-    select.innerHTML = '<option value="">-- Pilih Paket Laundry --</option>';
+    // Render tombol kategori, paket dropdown muncul setelah kategori dipilih
+    const wrapper = document.getElementById('paketPickerWrapper');
+    if (!wrapper) return;
+
+    const katIcon = { REGULER:'🌀', EXPRESS:'⚡', SUPER:'🚀', SATUAN:'📦' };
+    const katColor = {
+        REGULER: '#3b82f6', EXPRESS: '#f59e0b',
+        SUPER:   '#ef4444', SATUAN:  '#8b5cf6'
+    };
+
     const groups = {};
     Object.values(hargaData).forEach(item => {
         if (!groups[item.kategori]) groups[item.kategori] = [];
         groups[item.kategori].push(item);
     });
-    Object.keys(groups).sort().forEach(kat => {
-        const og = document.createElement('optgroup');
-        og.label = `✨ ${kat}`;
-        groups[kat].forEach(item => {
-            const opt         = document.createElement('option');
-            opt.value         = item.id;
-            opt.textContent   = `${item.nama} — ${formatRp(item.harga)}${item.jam > 0 ? ` (${item.jam} jam)` : ''}`;
-            opt.dataset.harga = item.harga;
-            opt.dataset.jam   = item.jam;
-            og.appendChild(opt);
-        });
-        select.appendChild(og);
+
+    // Render tombol kategori
+    const btnHtml = Object.keys(groups).sort().map(kat => `
+        <button type="button" onclick="pilihKategori('${kat}')"
+            id="katBtn-${kat}"
+            style="flex:1;min-width:70px;padding:10px 6px;border:2px solid ${katColor[kat]||'#64748b'};
+                   border-radius:10px;background:white;color:${katColor[kat]||'#64748b'};
+                   font-weight:700;font-size:13px;cursor:pointer;transition:all 0.15s;">
+            ${katIcon[kat]||'📋'}<br><span style="font-size:11px;">${kat}</span>
+        </button>`).join('');
+
+    wrapper.innerHTML = `
+        <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
+            ${btnHtml}
+        </div>
+        <div id="paketListContainer" style="display:none;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+                <span id="paketKatLabel" style="font-weight:700;font-size:13px;color:#1e293b;"></span>
+                <button type="button" onclick="tutupPaketList()"
+                    style="background:#f1f5f9;border:none;border-radius:6px;padding:3px 8px;cursor:pointer;font-size:12px;color:#64748b;">✕ Tutup</button>
+            </div>
+            <div id="paketGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;max-height:250px;overflow-y:auto;"></div>
+        </div>
+        <input type="hidden" id="paketLaundry">`;
+}
+
+function pilihKategori(kat) {
+    // Highlight tombol aktif
+    document.querySelectorAll('[id^="katBtn-"]').forEach(b => {
+        b.style.background = 'white';
+        b.style.color = b.style.borderColor;
+    });
+    const aktifBtn = document.getElementById('katBtn-' + kat);
+    if (aktifBtn) {
+        aktifBtn.style.background = aktifBtn.style.borderColor;
+        aktifBtn.style.color = 'white';
+    }
+
+    const groups = {};
+    Object.values(hargaData).forEach(item => {
+        if (!groups[item.kategori]) groups[item.kategori] = [];
+        groups[item.kategori].push(item);
+    });
+
+    const items = groups[kat] || [];
+    const grid  = document.getElementById('paketGrid');
+    const label = document.getElementById('paketKatLabel');
+    const container = document.getElementById('paketListContainer');
+
+    const katIcon  = { REGULER:'🌀', EXPRESS:'⚡', SUPER:'🚀', SATUAN:'📦' };
+    const katColor = { REGULER:'#3b82f6', EXPRESS:'#f59e0b', SUPER:'#ef4444', SATUAN:'#8b5cf6' };
+
+    label.textContent = `${katIcon[kat]||''} ${kat}`;
+    label.style.color = katColor[kat] || '#1e293b';
+
+    grid.innerHTML = items.map(item => {
+        // Nama singkat: hapus prefix "KATEGORI - "
+        const shortName = item.nama.replace(/^[A-Z]+ - /, '');
+        const jamLabel  = item.jam > 0 ? `<span style="font-size:10px;opacity:0.8;">${item.jam}jam</span>` : '';
+        return `
+        <button type="button" onclick="pilihPaket('${item.id}')"
+            data-harga="${item.harga}" data-jam="${item.jam}" data-nama="${item.nama}"
+            style="padding:8px 6px;border:1.5px solid #e2e8f0;border-radius:8px;background:white;
+                   cursor:pointer;text-align:left;transition:all 0.15s;font-size:12px;"
+            onmouseover="this.style.borderColor='${katColor[kat]||'#3b82f6'}';this.style.background='#f8fafc'"
+            onmouseout="this.style.borderColor='#e2e8f0';this.style.background='white'">
+            <div style="font-weight:600;color:#1e293b;margin-bottom:2px;">${shortName}</div>
+            <div style="color:${katColor[kat]||'#3b82f6'};font-weight:700;">${formatRp(item.harga)}</div>
+            ${jamLabel}
+        </button>`;
+    }).join('');
+
+    container.style.display = 'block';
+}
+
+function pilihPaket(id) {
+    const item = hargaData[id];
+    if (!item) return;
+
+    // Set hidden input (kompatibel dengan tambahItemKeCart)
+    const hiddenInput = document.getElementById('paketLaundry');
+    hiddenInput.value = id;
+    hiddenInput.dataset.harga = item.harga;
+    hiddenInput.dataset.jam   = item.jam;
+
+    // Highlight tombol yang dipilih
+    document.querySelectorAll('#paketGrid button').forEach(b => {
+        b.style.background   = 'white';
+        b.style.borderColor  = '#e2e8f0';
+        b.style.fontWeight   = '';
+    });
+    event.currentTarget.style.background  = '#eff6ff';
+    event.currentTarget.style.borderColor = '#3b82f6';
+
+    // Tampilkan nama paket terpilih
+    showToast(`✅ Dipilih: ${item.nama.replace(/^[A-Z]+ - /,'')} — ${formatRp(item.harga)}`, 'success');
+    hitungTotal();
+}
+
+function tutupPaketList() {
+    document.getElementById('paketListContainer').style.display = 'none';
+    document.querySelectorAll('[id^="katBtn-"]').forEach(b => {
+        b.style.background = 'white';
+        b.style.color = b.style.borderColor;
     });
 }
 
@@ -340,13 +439,13 @@ function tambahItemKeCart() {
     const jumlah   = parseInt(document.getElementById('jumlahOrder').value) || 1;
 
     if (!paketId) {
-        showToast('❌ Pilih paket dulu!', 'error');
+        showToast('❌ Pilih paket dulu! Klik kategori lalu pilih paket.', 'error');
         return;
     }
 
-    const opt   = paketEl.options[paketEl.selectedIndex];
-    const harga = parseInt(opt?.dataset?.harga) || 0;
-    const nama  = opt?.textContent?.split(' — ')[0] || '';
+    const item  = hargaData[paketId];
+    const harga = item?.harga || parseInt(paketEl.dataset?.harga) || 0;
+    const nama  = item?.nama  || paketId;
 
     cartItems.push({
         id: paketId,
@@ -357,6 +456,7 @@ function tambahItemKeCart() {
     });
 
     document.getElementById('paketLaundry').value = '';
+    tutupPaketList();
     document.getElementById('jumlahOrder').value = '1';
 
     updateCartDisplay();
