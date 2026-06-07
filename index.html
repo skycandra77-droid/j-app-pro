@@ -133,19 +133,19 @@
                     <div style="border-top: 2px solid #e2e8f0; padding-top: 15px; margin-top: 15px;">
                         <h4 style="margin-bottom: 12px; color: #1e40af;">📦 Item Order</h4>
                         
-                        <!-- Form Tambah Item -->
+                        <!-- Form Tambah Item — Pilih Kategori dulu, baru paket -->
                         <div class="item-form-section">
                             <div class="form-group">
-                                <label for="paketLaundry">Pilih Paket/Item</label>
-                                <select id="paketLaundry" onchange="hitungTotal()">
-                                    <option value="">⏳ Memuat daftar harga...</option>
-                                </select>
+                                <label>Pilih Paket/Item</label>
+                                <div id="paketPickerWrapper">
+                                    <p style="color:#94a3b8;font-size:13px;">⏳ Memuat daftar harga...</p>
+                                </div>
                             </div>
-                            <div class="form-group">
+                            <div class="form-group" style="margin-top:10px;">
                                 <label for="jumlahOrder">Jumlah (Kg / Pcs)</label>
                                 <input type="number" id="jumlahOrder" value="1" min="1" oninput="hitungTotal()">
                             </div>
-                            <button type="button" class="btn btn-secondary" onclick="tambahItemKeCart()" style="width: 100%; margin-top: 8px;">➕ TAMBAH ITEM</button>
+                            <button type="button" class="btn btn-secondary" onclick="tambahItemKeCart()" style="width:100%;margin-top:8px;">➕ TAMBAH ITEM</button>
                         </div>
 
                         <!-- Daftar Item di Cart -->
