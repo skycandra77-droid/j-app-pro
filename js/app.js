@@ -190,6 +190,7 @@ function gantiPanel(nama) {
         panelRingkasan.classList.remove('hidden');
         tabKasir.classList.remove('active');
         tabRingkasan.classList.add('active');
+        renderFilterKas();
         updateSummary();
         updatePembukuanTable();
     }
@@ -385,7 +386,7 @@ function pilihKategori(kat) {
         const shortName = item.nama.replace(/^[A-Z]+ - /, '');
         const jamLabel  = item.jam > 0 ? `<span style="font-size:10px;opacity:0.8;">${item.jam}jam</span>` : '';
         return `
-        <button type="button" onclick="pilihPaket('${item.id}')"
+        <button type="button" onclick="pilihPaket('${item.id}', this)"
             data-harga="${item.harga}" data-jam="${item.jam}" data-nama="${item.nama}"
             style="padding:8px 6px;border:1.5px solid #e2e8f0;border-radius:8px;background:white;
                    cursor:pointer;text-align:left;transition:all 0.15s;font-size:12px;"
@@ -400,26 +401,21 @@ function pilihKategori(kat) {
     container.style.display = 'block';
 }
 
-function pilihPaket(id) {
+function pilihPaket(id, el) {
     const item = hargaData[id];
     if (!item) return;
 
-    // Set hidden input (kompatibel dengan tambahItemKeCart)
     const hiddenInput = document.getElementById('paketLaundry');
     hiddenInput.value = id;
     hiddenInput.dataset.harga = item.harga;
     hiddenInput.dataset.jam   = item.jam;
 
-    // Highlight tombol yang dipilih
     document.querySelectorAll('#paketGrid button').forEach(b => {
-        b.style.background   = 'white';
-        b.style.borderColor  = '#e2e8f0';
-        b.style.fontWeight   = '';
+        b.style.background  = 'white';
+        b.style.borderColor = '#e2e8f0';
     });
-    event.currentTarget.style.background  = '#eff6ff';
-    event.currentTarget.style.borderColor = '#3b82f6';
+    if (el) { el.style.background = '#eff6ff'; el.style.borderColor = '#3b82f6'; }
 
-    // Tampilkan nama paket terpilih
     showToast(`✅ Dipilih: ${item.nama.replace(/^[A-Z]+ - /,'')} — ${formatRp(item.harga)}`, 'success');
     hitungTotal();
 }
@@ -664,33 +660,94 @@ function renderOrderCard(order, isSelesai = false) {
 
 // ==================== ✨ EDIT ORDER MODAL ====================
 function bukaMoalEditOrder(orderId) {
-    const order = Object.values(Object.fromEntries(
-        Object.entries(transaksiData.reduce((acc, t) => {
-            if (t.id === orderId) {
-                if (!acc[t.id]) {
-                    acc[t.id] = { id: t.id, nama: t.nama, nomorWa: t.nomorWa, tanggal: t.tanggal, items: [] };
-                }
-                acc[t.id].items.push({ item: t.item, jumlah: t.jumlah, harga: t.harga, subtotal: t.subtotal });
-            }
-            return acc;
-        }, {}))
-    ))[0];
-
-    if (!order) return;
+    // Kumpulkan data order dari transaksiData
+    const rows = transaksiData.filter(t => t.id === orderId);
+    if (!rows.length) return;
+    const first = rows[0];
 
     _editingOrderId = orderId;
-    _editingItems = JSON.parse(JSON.stringify(order.items));
+    _editingItems   = rows.map(r => ({
+        item: r.item, jumlah: r.jumlah, harga: r.harga, subtotal: r.subtotal
+    }));
 
-    // Buka modal edit
+    // Bangun picker kategori paket khusus modal (mandiri, tidak pakai picker luar)
+    const katIcon  = { REGULER:'🌀', EXPRESS:'⚡', SUPER:'🚀', SATUAN:'📦' };
+    const katColor = { REGULER:'#3b82f6', EXPRESS:'#f59e0b', SUPER:'#ef4444', SATUAN:'#8b5cf6' };
+    const groups   = {};
+    Object.values(hargaData).forEach(d => {
+        if (!groups[d.kategori]) groups[d.kategori] = [];
+        groups[d.kategori].push(d);
+    });
+    const katBtns = Object.keys(groups).sort().map(kat => `
+        <button type="button" onclick="editModalPilihKat('${kat}')"
+            id="editKatBtn-${kat}"
+            style="flex:1;min-width:60px;padding:8px 4px;border:2px solid ${katColor[kat]||'#64748b'};
+                   border-radius:8px;background:white;color:${katColor[kat]||'#64748b'};
+                   font-weight:700;font-size:11px;cursor:pointer;">
+            ${katIcon[kat]||'📋'}<br>${kat}
+        </button>`).join('');
+
     const modalHtml = `
-    <div id="modalEditOrder" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:9999;">
-        <div style="background:white;border-radius:12px;padding:20px;max-width:500px;width:90%;max-height:80vh;overflow-y:auto;">
-            <h3 style="margin-bottom:15px;">✏️ Edit Order: ${order.nama}</h3>
+    <div id="modalEditOrder" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);
+         display:flex;align-items:center;justify-content:center;z-index:9999;padding:10px;">
+        <div style="background:white;border-radius:14px;padding:20px;width:100%;max-width:500px;
+                    max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                <h3 style="margin:0;color:#1e293b;">✏️ Edit Order: ${first.nama}</h3>
+                <button type="button" onclick="tutupModalEdit()"
+                    style="background:#f1f5f9;border:none;border-radius:8px;padding:6px 12px;cursor:pointer;font-size:14px;">✕</button>
+            </div>
+
+            <!-- Field Tanggal Masuk & Estimasi Selesai -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
+                <div>
+                    <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px;">📅 Tanggal Masuk</label>
+                    <input type="text" id="editTanggalMasuk" value="${first.tanggal||''}"
+                        style="width:100%;padding:7px 10px;border:1.5px solid #e2e8f0;border-radius:8px;
+                               font-size:12px;box-sizing:border-box;">
+                </div>
+                <div>
+                    <label style="font-size:12px;font-weight:600;color:#64748b;display:block;margin-bottom:4px;">⏰ Estimasi Selesai</label>
+                    <input type="text" id="editEstimasi" value="${first.estimasi||''}"
+                        style="width:100%;padding:7px 10px;border:1.5px solid #e2e8f0;border-radius:8px;
+                               font-size:12px;box-sizing:border-box;">
+                </div>
+            </div>
+
+            <!-- Daftar item saat ini -->
+            <div style="font-size:12px;font-weight:600;color:#64748b;margin-bottom:8px;">📦 Item Order</div>
             <div id="editItemsList"></div>
-            <button type="button" onclick="tambahItemModalEdit()" class="btn btn-secondary" style="width:100%;margin:10px 0;">➕ Tambah Item</button>
-            <div style="display:flex;gap:10px;margin-top:15px;">
-                <button type="button" onclick="tutupModalEdit()" class="btn" style="flex:1;background:#94a3b8;">Batal</button>
-                <button type="button" onclick="simpanEditOrder('${orderId}')" class="btn btn-save" style="flex:1;">💾 Simpan</button>
+
+            <!-- Tambah item baru — picker mandiri -->
+            <div style="border:1.5px dashed #cbd5e1;border-radius:10px;padding:12px;margin:12px 0;">
+                <div style="font-size:12px;font-weight:600;color:#64748b;margin-bottom:8px;">➕ Tambah Item</div>
+                <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;">
+                    ${katBtns}
+                </div>
+                <div id="editPaketGrid" style="display:none;max-height:180px;overflow-y:auto;
+                     display:none;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:8px;"></div>
+                <div style="display:flex;gap:8px;align-items:center;margin-top:8px;">
+                    <label style="font-size:12px;color:#64748b;white-space:nowrap;">Qty:</label>
+                    <input type="number" id="editJumlahTambah" value="1" min="1"
+                        style="width:60px;padding:6px;border:1.5px solid #e2e8f0;border-radius:6px;font-size:13px;">
+                    <span id="editPaketTerpilihLabel" style="font-size:11px;color:#94a3b8;flex:1;">— belum dipilih —</span>
+                </div>
+                <input type="hidden" id="editPaketTerpilihId">
+                <button type="button" onclick="konfirmasiTambahItemEdit()"
+                    style="width:100%;margin-top:8px;padding:8px;background:#3b82f6;color:white;
+                           border:none;border-radius:8px;cursor:pointer;font-weight:600;font-size:13px;">
+                    ➕ Tambah ke Order
+                </button>
+            </div>
+
+            <div style="display:flex;gap:10px;margin-top:16px;">
+                <button type="button" onclick="tutupModalEdit()"
+                    style="flex:1;padding:10px;background:#f1f5f9;border:none;border-radius:8px;
+                           cursor:pointer;font-weight:600;color:#64748b;">Batal</button>
+                <button type="button" onclick="simpanEditOrder('${orderId}')"
+                    style="flex:1;padding:10px;background:#1a56db;color:white;border:none;
+                           border-radius:8px;cursor:pointer;font-weight:700;font-size:14px;">💾 Simpan Perubahan</button>
             </div>
         </div>
     </div>`;
@@ -699,60 +756,135 @@ function bukaMoalEditOrder(orderId) {
     updateEditItemsList();
 }
 
+// Picker kategori khusus modal edit
+function editModalPilihKat(kat) {
+    const katColor = { REGULER:'#3b82f6', EXPRESS:'#f59e0b', SUPER:'#ef4444', SATUAN:'#8b5cf6' };
+    document.querySelectorAll('[id^="editKatBtn-"]').forEach(b => {
+        b.style.background = 'white'; b.style.color = b.style.borderColor;
+    });
+    const aktif = document.getElementById('editKatBtn-' + kat);
+    if (aktif) { aktif.style.background = aktif.style.borderColor; aktif.style.color = 'white'; }
+
+    const groups = {};
+    Object.values(hargaData).forEach(d => {
+        if (!groups[d.kategori]) groups[d.kategori] = [];
+        groups[d.kategori].push(d);
+    });
+    const items = groups[kat] || [];
+    const grid  = document.getElementById('editPaketGrid');
+    if (!grid) return;
+
+    grid.style.display = 'grid';
+    grid.innerHTML = items.map(item => {
+        const short = item.nama.replace(/^[A-Z]+ - /, '');
+        return `
+        <button type="button" onclick="editModalPilihPaket('${item.id}')"
+            id="editPaketBtn-${item.id}"
+            style="padding:7px 6px;border:1.5px solid #e2e8f0;border-radius:7px;background:white;
+                   cursor:pointer;text-align:left;font-size:11px;">
+            <div style="font-weight:600;color:#1e293b;">${short}</div>
+            <div style="color:${katColor[kat]||'#3b82f6'};font-weight:700;">${formatRp(item.harga)}</div>
+        </button>`;
+    }).join('');
+}
+
+function editModalPilihPaket(id) {
+    const item = hargaData[id];
+    if (!item) return;
+    document.getElementById('editPaketTerpilihId').value = id;
+    document.getElementById('editPaketTerpilihLabel').textContent =
+        item.nama.replace(/^[A-Z]+ - /, '') + ' — ' + formatRp(item.harga);
+    document.getElementById('editPaketTerpilihLabel').style.color = '#1e40af';
+    // Highlight tombol
+    document.querySelectorAll('[id^="editPaketBtn-"]').forEach(b => {
+        b.style.background = 'white'; b.style.borderColor = '#e2e8f0';
+    });
+    const btn = document.getElementById('editPaketBtn-' + id);
+    if (btn) { btn.style.background = '#eff6ff'; btn.style.borderColor = '#3b82f6'; }
+}
+
+function konfirmasiTambahItemEdit() {
+    const id     = document.getElementById('editPaketTerpilihId').value;
+    const jumlah = parseInt(document.getElementById('editJumlahTambah').value) || 1;
+    if (!id) { showToast('❌ Pilih paket dulu!', 'error'); return; }
+    const item = hargaData[id];
+    if (!item) return;
+    _editingItems.push({ item: item.nama, jumlah, harga: item.harga, subtotal: item.harga * jumlah });
+    updateEditItemsList();
+    // Reset picker
+    document.getElementById('editPaketTerpilihId').value    = '';
+    document.getElementById('editPaketTerpilihLabel').textContent = '— belum dipilih —';
+    document.getElementById('editPaketTerpilihLabel').style.color = '#94a3b8';
+    document.getElementById('editPaketGrid').style.display  = 'none';
+    document.querySelectorAll('[id^="editKatBtn-"]').forEach(b => {
+        b.style.background = 'white'; b.style.color = b.style.borderColor;
+    });
+    showToast('✅ Item ditambahkan', 'success');
+}
+
 function updateEditItemsList() {
     const container = document.getElementById('editItemsList');
     if (!container) return;
-
+    if (_editingItems.length === 0) {
+        container.innerHTML = '<p style="text-align:center;color:#94a3b8;font-size:13px;padding:10px;">Belum ada item</p>';
+        return;
+    }
     container.innerHTML = _editingItems.map((item, idx) => `
-        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px;margin-bottom:10px;">
-            <div style="font-weight:600;color:#1e293b;font-size:13px;margin-bottom:5px;">${item.item}</div>
-            <div style="display:flex;gap:5px;align-items:center;margin-bottom:5px;">
-                <label style="font-size:12px;">Qty:</label>
-                <input type="number" value="${item.jumlah}" min="1" onchange="updateEditItemQty(${idx}, this.value)" style="width:50px;padding:4px;border:1px solid #ccc;border-radius:4px;"/>
-                <span style="font-size:12px;color:#64748b;">= ${formatRp(item.subtotal)}</span>
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;
+                    padding:10px;margin-bottom:8px;display:flex;align-items:center;gap:10px;">
+            <div style="flex:1;">
+                <div style="font-weight:600;color:#1e293b;font-size:13px;">${item.item.replace(/^[A-Z]+ - /,'')}</div>
+                <div style="font-size:12px;color:#64748b;">${formatRp(item.harga)} / item</div>
             </div>
-            <button type="button" onclick="hapusEditItem(${idx})" style="background:#fee2e2;color:#dc2626;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;font-size:11px;">🗑️ Hapus</button>
+            <div style="display:flex;align-items:center;gap:5px;">
+                <button type="button" onclick="editQtyStep(${idx},-1)"
+                    style="width:26px;height:26px;border:1.5px solid #e2e8f0;border-radius:6px;
+                           background:white;cursor:pointer;font-size:14px;font-weight:700;">−</button>
+                <span style="font-weight:700;font-size:14px;min-width:20px;text-align:center;">${item.jumlah}</span>
+                <button type="button" onclick="editQtyStep(${idx},1)"
+                    style="width:26px;height:26px;border:1.5px solid #e2e8f0;border-radius:6px;
+                           background:white;cursor:pointer;font-size:14px;font-weight:700;">+</button>
+            </div>
+            <div style="font-weight:700;color:#1a56db;min-width:70px;text-align:right;font-size:13px;">
+                ${formatRp(item.subtotal)}
+            </div>
+            <button type="button" onclick="hapusEditItem(${idx})"
+                style="background:#fee2e2;color:#dc2626;border:none;padding:5px 8px;
+                       border-radius:6px;cursor:pointer;font-size:13px;">🗑️</button>
         </div>
-    `).join('');
+    `).join('') + `
+        <div style="text-align:right;font-weight:700;color:#1e293b;font-size:14px;padding:8px 0;
+                    border-top:2px solid #e2e8f0;margin-top:4px;">
+            Total: ${formatRp(_editingItems.reduce((s,i)=>s+i.subtotal,0))}
+        </div>`;
+}
+
+function editQtyStep(idx, delta) {
+    if (idx < 0 || idx >= _editingItems.length) return;
+    const newQty = (_editingItems[idx].jumlah || 1) + delta;
+    if (newQty < 1) return;
+    _editingItems[idx].jumlah   = newQty;
+    _editingItems[idx].subtotal = _editingItems[idx].harga * newQty;
+    updateEditItemsList();
 }
 
 function updateEditItemQty(idx, qty) {
     if (idx >= 0 && idx < _editingItems.length) {
-        _editingItems[idx].jumlah = parseInt(qty) || 1;
+        _editingItems[idx].jumlah   = parseInt(qty) || 1;
         _editingItems[idx].subtotal = _editingItems[idx].harga * _editingItems[idx].jumlah;
         updateEditItemsList();
     }
 }
 
 function hapusEditItem(idx) {
+    if (_editingItems.length <= 1) {
+        showToast('❌ Minimal harus ada 1 item!', 'error'); return;
+    }
     _editingItems.splice(idx, 1);
     updateEditItemsList();
 }
 
-function tambahItemModalEdit() {
-    const paketEl  = document.getElementById('paketLaundry');
-    const paketId  = paketEl.value;
-    const jumlah   = parseInt(document.getElementById('jumlahOrder').value) || 1;
-
-    if (!paketId) {
-        showToast('❌ Pilih paket dulu!', 'error');
-        return;
-    }
-
-    const opt   = paketEl.options[paketEl.selectedIndex];
-    const harga = parseInt(opt?.dataset?.harga) || 0;
-    const nama  = opt?.textContent?.split(' — ')[0] || '';
-
-    _editingItems.push({
-        item: nama,
-        jumlah: jumlah,
-        harga: harga,
-        subtotal: harga * jumlah
-    });
-
-    updateEditItemsList();
-    showToast(`✅ Item ditambahkan ke order`, 'success');
-}
+function tambahItemModalEdit() { konfirmasiTambahItemEdit(); }
 
 function tutupModalEdit() {
     const modal = document.getElementById('modalEditOrder');
@@ -763,48 +895,61 @@ function tutupModalEdit() {
 
 async function simpanEditOrder(orderId) {
     if (_editingItems.length === 0) {
-        showToast('❌ Minimal ada 1 item!', 'error');
-        return;
+        showToast('❌ Minimal ada 1 item!', 'error'); return;
     }
 
-    // Hapus order lama dari transaksiData
-    transaksiData = transaksiData.filter(t => t.id !== orderId);
+    const btn = document.querySelector('#modalEditOrder button[onclick*="simpanEditOrder"]');
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ Menyimpan...'; }
 
-    // Hitung total baru
-    let totalHarga = 0;
-    _editingItems.forEach(item => { totalHarga += item.subtotal; });
+    // Ambil tanggal & estimasi dari field edit
+    const tanggalBaru   = document.getElementById('editTanggalMasuk')?.value?.trim()
+                          || transaksiData.find(t => t.id === orderId)?.tanggal
+                          || new Date().toLocaleString('id-ID');
+    const estimasiBaru  = document.getElementById('editEstimasi')?.value?.trim()
+                          || transaksiData.find(t => t.id === orderId)?.estimasi || '';
 
-    // Ambil data order dari item pertama (nama, wa, etc)
-    const firstItem = transaksiData.find(t => t.id === orderId) || _editingItems[0];
+    // Ambil data header dari data lama sebelum dihapus
+    const oldRow = transaksiData.find(t => t.id === orderId);
+    const nomorWa = oldRow?.nomorWa || '';
+    const nama    = oldRow?.nama    || '';
+    const status  = oldRow?.status  || 'Antre';
+    const bundling = oldRow?.bundling || 'Tidak';
 
-    // Push item baru ke apps script
-    for (let item of _editingItems) {
-        await fetch(APPS_SCRIPT_URL, {
-            method:'POST', mode:'no-cors',
-            headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({
-                action: 'simpanTransaksiMultiple',
-                idTransaksi: orderId,
-                tanggal: new Date().toLocaleString('id-ID'),
-                nomorWa: firstItem.nomorWa || '',
-                namaPelanggan: firstItem.nama || 'Unknown',
-                item: item.item,
-                jumlah: item.jumlah,
-                harga: item.harga,
-                subtotal: item.subtotal,
-                bundlingDrink: 'Tidak',
-                totalHarga: totalHarga,
-                estimasiSelesai: firstItem.estimasi || '',
-                statusNota: firstItem.status || 'Antre',
-                pengeluaran: 0,
-                kasir: kasirAktif?.username || 'unknown'
-            })
-        });
+    let totalHarga = _editingItems.reduce((s, i) => s + i.subtotal, 0);
+
+    try {
+        for (let i = 0; i < _editingItems.length; i++) {
+            const item = _editingItems[i];
+            await fetch(APPS_SCRIPT_URL, {
+                method:'POST', mode:'no-cors',
+                headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({
+                    action          : 'editOrder',   // hapus baris lama dulu, lalu append
+                    idTransaksi     : orderId,
+                    tanggal         : tanggalBaru,
+                    nomorWa         : nomorWa,
+                    namaPelanggan   : nama,
+                    item            : item.item,
+                    jumlah          : item.jumlah,
+                    harga           : item.harga,
+                    subtotal        : item.subtotal,
+                    bundlingDrink   : bundling,
+                    totalHarga      : totalHarga,
+                    estimasiSelesai : estimasiBaru,
+                    statusNota      : status,
+                    pengeluaran     : 0,
+                    kasir           : kasirAktif?.username || 'unknown',
+                    isFirst         : i === 0   // signal ke GAS: hapus baris lama hanya sekali
+                })
+            });
+        }
+        tutupModalEdit();
+        showToast('✅ Order berhasil diperbarui!', 'success');
+        setTimeout(() => loadTransaksi(), 1500);
+    } catch(e) {
+        showToast('❌ Gagal simpan, coba lagi!', 'error');
+        if (btn) { btn.disabled = false; btn.textContent = '💾 Simpan Perubahan'; }
     }
-
-    tutupModalEdit();
-    showToast('✅ Order diperbarui!', 'success');
-    setTimeout(() => loadTransaksi(), 1500);
 }
 
 // ==================== MODAL KONFIRMASI STATUS ====================
@@ -991,6 +1136,27 @@ async function simpanPengeluaran() {
 }
 
 // ==================== UPDATE SUMMARY ====================
+// ── Filter tanggal panel Kas ──
+function renderFilterKas() {
+    const container = document.getElementById('filterKasWrapper');
+    if (!container) return;
+    // Render hanya sekali
+    if (container.dataset.rendered) return;
+    container.dataset.rendered = '1';
+    container.innerHTML = `
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+            <label style="font-size:12px;color:#64748b;font-weight:600;">📅 Lihat data tanggal:</label>
+            <input type="date" id="filterKasTanggal"
+                style="border:1px solid #e2e8f0;border-radius:8px;padding:5px 10px;font-size:13px;color:#1e293b;"
+                onchange="setFilterTanggal(this.value);updateSummary();updatePembukuanTable();">
+            <button onclick="setFilterTanggal(null);document.getElementById('filterKasTanggal').value='';updateSummary();updatePembukuanTable();"
+                style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:8px;padding:5px 10px;
+                       font-size:12px;cursor:pointer;color:#64748b;">
+                Hari Ini
+            </button>
+        </div>`;
+}
+
 function updateSummary() {
     const todayData = transaksiData.filter(t => isToday(t.tanggal));
 
@@ -1047,7 +1213,8 @@ function updatePembukuanTable() {
     if (!container) return;
     const todayData = transaksiData.filter(t => isToday(t.tanggal)).reverse();
     if (todayData.length === 0) {
-        container.innerHTML = '<p style="text-align:center;color:#94a3b8;padding:20px;font-size:13px;">📭 Belum ada data hari ini</p>';
+        const label = filterTanggal ? filterTanggal : 'hari ini';
+        container.innerHTML = `<p style="text-align:center;color:#94a3b8;padding:20px;font-size:13px;">📭 Belum ada data untuk ${label}</p>`;
         return;
     }
 
