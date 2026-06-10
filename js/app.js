@@ -42,6 +42,17 @@ function formatRp(angka) {
     return 'Rp ' + parseInt(angka || 0).toLocaleString('id-ID');
 }
 
+function nowString() {
+    const n = new Date();
+    const d = ('0'+n.getDate()).slice(-2);
+    const m = ('0'+(n.getMonth()+1)).slice(-2);
+    const y = n.getFullYear();
+    const h = ('0'+n.getHours()).slice(-2);
+    const mi= ('0'+n.getMinutes()).slice(-2);
+    const s = ('0'+n.getSeconds()).slice(-2);
+    return d+'-'+m+'-'+y+' '+h+':'+mi+':'+s;
+}
+
 function parseTanggal(str) {
     if (!str) return null;
     // Format gviz Google Sheets: "Date(2026,5,6,14,30,0)" — bulan 0-indexed
@@ -917,7 +928,7 @@ async function simpanEditOrder(orderId) {
     // Ambil tanggal & estimasi dari field edit
     const tanggalBaru   = document.getElementById('editTanggalMasuk')?.value?.trim()
                           || transaksiData.find(t => t.id === orderId)?.tanggal
-                          || (() => { const n = new Date(); return ('0'+n.getDate()).slice(-2)+'-'+('0'+(n.getMonth()+1)).slice(-2)+'-'+n.getFullYear()+' '+('0'+n.getHours()).slice(-2)+':'+('0'+n.getMinutes()).slice(-2)+':'+('0'+n.getSeconds()).slice(-2); })();
+                          || nowString();
     const estimasiBaru  = document.getElementById('editEstimasi')?.value?.trim()
                           || transaksiData.find(t => t.id === orderId)?.estimasi || '';
 
@@ -1049,7 +1060,7 @@ async function simpanTransaksi() {
 
     try {
         const idTrx = `nota-${Date.now()}`;
-        const tgl   = (() => { const n = new Date(); return ('0'+n.getDate()).slice(-2)+'-'+('0'+(n.getMonth()+1)).slice(-2)+'-'+n.getFullYear()+' '+('0'+n.getHours()).slice(-2)+':'+('0'+n.getMinutes()).slice(-2)+':'+('0'+n.getSeconds()).slice(-2); })();
+        const tgl   = nowString();
         let totalHarga = 0;
         cartItems.forEach(item => { totalHarga += item.subtotal; });
         totalHarga += (bundling === 'Ya' ? 5000 : 0);
@@ -1127,7 +1138,7 @@ async function simpanPengeluaran() {
             headers:{'Content-Type':'application/json'},
             body: JSON.stringify({
                 action:'simpanPengeluaran',
-                tanggal: (() => { const n = new Date(); return ('0'+n.getDate()).slice(-2)+'-'+('0'+(n.getMonth()+1)).slice(-2)+'-'+n.getFullYear()+' '+('0'+n.getHours()).slice(-2)+':'+('0'+n.getMinutes()).slice(-2)+':'+('0'+n.getSeconds()).slice(-2); })(),
+                tanggal: nowString(),
                 keterangan:ket, jumlah:parseInt(jumlah),
                 kasir: kasirAktif?.username||'unknown'
             })
