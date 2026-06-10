@@ -45,7 +45,9 @@ function loadLogo(callback) {
     const img   = new Image();
     img.onload  = () => callback(img);
     img.onerror = () => callback(null);
-    img.src     = 'logo.png';
+    // Bangun path logo relatif terhadap lokasi app (agar benar di semua environment)
+    const base = window.location.href.replace(/\/[^\/]*$/, '/');
+    img.src = base + 'logo.png';
 }
 
 // ============================================================

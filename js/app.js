@@ -749,8 +749,7 @@ function bukaMoalEditOrder(orderId) {
                 <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;">
                     ${katBtns}
                 </div>
-                <div id="editPaketGrid" style="display:none;max-height:180px;overflow-y:auto;
-                     display:none;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:8px;"></div>
+                <div id="editPaketGrid" style="display:none;max-height:180px;overflow-y:auto;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:8px;"></div>
                 <div style="display:flex;gap:8px;align-items:center;margin-top:8px;">
                     <label style="font-size:12px;color:#64748b;white-space:nowrap;">Qty:</label>
                     <input type="number" id="editJumlahTambah" value="1" min="1"
@@ -1162,6 +1161,8 @@ async function simpanPengeluaran() {
 // ==================== UPDATE SUMMARY ====================
 // ── Filter tanggal panel Kas ──
 function renderFilterKas() {
+    // Guard: jangan render ulang jika sudah ada (mencegah reset filter saat ganti tab)
+    if (document.querySelector('#filterKasWrapper input[type="date"]')) return;
     const container = document.getElementById('filterKasWrapper');
     if (!container) return;
     // Render hanya sekali
