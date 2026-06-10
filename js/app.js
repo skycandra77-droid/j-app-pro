@@ -88,6 +88,7 @@ function setFilterTanggal(val) {
     updateLiveOrders();
     updateSummary();
     updatePembukuanTable();
+    updateItemTerlaris();
 }
 
 // ==================== TOGGLE PASSWORD ====================
@@ -193,6 +194,7 @@ function gantiPanel(nama) {
         renderFilterKas();
         updateSummary();
         updatePembukuanTable();
+        updateItemTerlaris();
     }
 }
 
@@ -383,7 +385,7 @@ function pilihKategori(kat) {
 
     grid.innerHTML = items.map(item => {
         // Nama singkat: hapus prefix "KATEGORI - "
-        const shortName = item.nama.replace(/^[A-Z]+ - /, '');
+        const shortName = item.nama.replace(/^[A-Z\s]+ - /, '').replace(/ — .+$/, '');
         const jamLabel  = item.jam > 0 ? `<span style="font-size:10px;opacity:0.8;">${item.jam}jam</span>` : '';
         return `
         <button type="button" onclick="pilihPaket('${item.id}', this)"
@@ -547,6 +549,9 @@ async function loadTransaksi() {
 
         updateLiveOrders();
         updateSummary();
+        updatePembukuanTable();
+        updateItemTerlaris();
+        updateLastSync();
     } catch (e) {
         console.error('❌ Gagal load transaksi:', e);
         document.getElementById('liveOrders').innerHTML =
@@ -666,9 +671,17 @@ function bukaMoalEditOrder(orderId) {
     const first = rows[0];
 
     _editingOrderId = orderId;
-    _editingItems   = rows.map(r => ({
-        item: r.item, jumlah: r.jumlah, harga: r.harga, subtotal: r.subtotal
-    }));
+    _editingItems   = rows.map(r => {
+        // Cari harga dari hargaData jika harga di sheet 0 (fallback by nama)
+        let harga = r.harga || 0;
+        if (!harga) {
+            const match = Object.values(hargaData).find(d => d.nama === r.item);
+            if (match) harga = match.harga;
+        }
+        const jumlah   = r.jumlah   || 1;
+        const subtotal = r.subtotal || (harga * jumlah);
+        return { item: r.item, jumlah, harga, subtotal };
+    });
 
     // Bangun picker kategori paket khusus modal (mandiri, tidak pakai picker luar)
     const katIcon  = { REGULER:'🌀', EXPRESS:'⚡', SUPER:'🚀', SATUAN:'📦' };
@@ -776,7 +789,7 @@ function editModalPilihKat(kat) {
 
     grid.style.display = 'grid';
     grid.innerHTML = items.map(item => {
-        const short = item.nama.replace(/^[A-Z]+ - /, '');
+        const short = item.nama.replace(/^[A-Z\s]+ - /, '').replace(/ — .+$/, '');
         return `
         <button type="button" onclick="editModalPilihPaket('${item.id}')"
             id="editPaketBtn-${item.id}"
@@ -833,7 +846,7 @@ function updateEditItemsList() {
         <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;
                     padding:10px;margin-bottom:8px;display:flex;align-items:center;gap:10px;">
             <div style="flex:1;">
-                <div style="font-weight:600;color:#1e293b;font-size:13px;">${item.item.replace(/^[A-Z]+ - /,'')}</div>
+                <div style="font-weight:600;color:#1e293b;font-size:13px;">${item.item.replace(/^[A-Z\s]+ - /,'').replace(/ — .+$/,'')}</div>
                 <div style="font-size:12px;color:#64748b;">${formatRp(item.harga)} / item</div>
             </div>
             <div style="display:flex;align-items:center;gap:5px;">
@@ -904,7 +917,7 @@ async function simpanEditOrder(orderId) {
     // Ambil tanggal & estimasi dari field edit
     const tanggalBaru   = document.getElementById('editTanggalMasuk')?.value?.trim()
                           || transaksiData.find(t => t.id === orderId)?.tanggal
-                          || new Date().toLocaleString('id-ID');
+                          || (() => { const n = new Date(); return ('0'+n.getDate()).slice(-2)+'-'+('0'+(n.getMonth()+1)).slice(-2)+'-'+n.getFullYear()+' '+('0'+n.getHours()).slice(-2)+':'+('0'+n.getMinutes()).slice(-2)+':'+('0'+n.getSeconds()).slice(-2); })();
     const estimasiBaru  = document.getElementById('editEstimasi')?.value?.trim()
                           || transaksiData.find(t => t.id === orderId)?.estimasi || '';
 
@@ -1036,7 +1049,7 @@ async function simpanTransaksi() {
 
     try {
         const idTrx = `nota-${Date.now()}`;
-        const tgl   = new Date().toLocaleString('id-ID');
+        const tgl   = (() => { const n = new Date(); return ('0'+n.getDate()).slice(-2)+'-'+('0'+(n.getMonth()+1)).slice(-2)+'-'+n.getFullYear()+' '+('0'+n.getHours()).slice(-2)+':'+('0'+n.getMinutes()).slice(-2)+':'+('0'+n.getSeconds()).slice(-2); })();
         let totalHarga = 0;
         cartItems.forEach(item => { totalHarga += item.subtotal; });
         totalHarga += (bundling === 'Ya' ? 5000 : 0);
@@ -1114,7 +1127,7 @@ async function simpanPengeluaran() {
             headers:{'Content-Type':'application/json'},
             body: JSON.stringify({
                 action:'simpanPengeluaran',
-                tanggal: new Date().toLocaleString('id-ID'),
+                tanggal: (() => { const n = new Date(); return ('0'+n.getDate()).slice(-2)+'-'+('0'+(n.getMonth()+1)).slice(-2)+'-'+n.getFullYear()+' '+('0'+n.getHours()).slice(-2)+':'+('0'+n.getMinutes()).slice(-2)+':'+('0'+n.getSeconds()).slice(-2); })(),
                 keterangan:ket, jumlah:parseInt(jumlah),
                 kasir: kasirAktif?.username||'unknown'
             })
@@ -1141,8 +1154,6 @@ function renderFilterKas() {
     const container = document.getElementById('filterKasWrapper');
     if (!container) return;
     // Render hanya sekali
-    if (container.dataset.rendered) return;
-    container.dataset.rendered = '1';
     container.innerHTML = `
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
             <label style="font-size:12px;color:#64748b;font-weight:600;">📅 Lihat data tanggal:</label>
@@ -1252,10 +1263,57 @@ function updatePembukuanTable() {
 }
 
 // ==================== REFRESH ====================
+let lastSyncTime = null;
+
+function updateLastSync() {
+    lastSyncTime = new Date();
+    const el = document.getElementById('lastSyncLabel');
+    if (el) el.textContent = '🕐 Sync: ' + lastSyncTime.toLocaleTimeString('id-ID', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+
 function refreshData() {
     loadHargaDariSheet();
     loadTransaksi();
     showToast('🔄 Memuat ulang data dari cloud...', 'default');
+}
+
+// ==================== ITEM TERLARIS ====================
+function updateItemTerlaris() {
+    const container = document.getElementById('itemTerlarisBox');
+    if (!container) return;
+
+    const todayOrders = transaksiData.filter(t => isToday(t.tanggal) && !t.id.startsWith('pengeluaran-'));
+    if (todayOrders.length === 0) {
+        container.innerHTML = '<p style="text-align:center;color:#94a3b8;font-size:13px;padding:10px;">📭 Belum ada data</p>';
+        return;
+    }
+
+    // Hitung frekuensi per item
+    const freq = {};
+    todayOrders.forEach(t => {
+        if (!t.item) return;
+        const key = t.item;
+        if (!freq[key]) freq[key] = { nama: key, qty: 0, total: 0 };
+        freq[key].qty   += (t.jumlah || 1);
+        freq[key].total += (t.subtotal || 0);
+    });
+
+    const sorted = Object.values(freq).sort((a, b) => b.qty - a.qty).slice(0, 5);
+    const medal  = ['🥇','🥈','🥉','4️⃣','5️⃣'];
+
+    container.innerHTML = sorted.map((item, i) => {
+        const shortNama = item.nama.replace(/^[A-Z\s]+ - /,'').replace(/ — .+$/,'');
+        return `
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 0;
+                    border-bottom:1px solid #f1f5f9;">
+            <span style="font-size:18px;">${medal[i]}</span>
+            <div style="flex:1;">
+                <div style="font-weight:600;font-size:13px;color:#1e293b;">${shortNama}</div>
+                <div style="font-size:11px;color:#64748b;">${formatRp(item.total)}</div>
+            </div>
+            <div style="font-weight:700;font-size:14px;color:#1a56db;">${item.qty}x</div>
+        </div>`;
+    }).join('');
 }
 
 // ==================== INIT ====================
