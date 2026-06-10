@@ -225,7 +225,18 @@
                         <div class="loading">Memuat data pembukuan</div>
                     </div>
                 </div>
-                <button class="btn" onclick="refreshData()" style="margin-bottom:20px;">🔄 Refresh Data Cloud</button>
+                <!-- Item Terlaris -->
+                <div class="card">
+                    <h3>🏆 Item Terlaris Hari Ini</h3>
+                    <div id="itemTerlarisBox">
+                        <p style="text-align:center;color:#94a3b8;font-size:13px;padding:10px;">📭 Belum ada data</p>
+                    </div>
+                </div>
+
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;gap:10px;flex-wrap:wrap;">
+                    <span id="lastSyncLabel" style="font-size:12px;color:#94a3b8;">🕐 Belum sync</span>
+                    <button class="btn" onclick="refreshData()" style="margin:0;">🔄 Refresh Data Cloud</button>
+                </div>
             </div><!-- /panelRingkasan -->
 
         </div><!-- /mainApp -->
