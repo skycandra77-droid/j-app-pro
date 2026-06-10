@@ -10,7 +10,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" href="logo.png">
     <link rel="apple-touch-icon" href="logo.png">
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="style.css">
     <!-- jsPDF CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
@@ -49,7 +49,7 @@
                     <label for="password">Password</label>
                     <div class="pass-wrap">
                         <input type="password" id="password" placeholder="Masukkan password" autocomplete="current-password">
-                        <button type="button" class="btn-eye" onclick="togglePassword()">��</button>
+                        <button type="button" class="btn-eye" onclick="togglePassword()">👁</button>
                     </div>
                 </div>
                 <div id="loginError" class="login-error hidden">❌ Username atau password salah!</div>
@@ -133,7 +133,7 @@
                     <div style="border-top: 2px solid #e2e8f0; padding-top: 15px; margin-top: 15px;">
                         <h4 style="margin-bottom: 12px; color: #1e40af;">📦 Item Order</h4>
                         
-                        <!-- Form Tambah Item — Pilih Kategori dulu, baru paket -->
+                        <!-- Form Tambah Item -->
                         <div class="item-form-section">
                             <div class="form-group">
                                 <label>Pilih Paket/Item</label>
@@ -259,7 +259,8 @@
     <!-- Toast Notifikasi -->
     <div id="toastNotif" class="toast hidden"></div>
 
-    <script src="js/app.js"></script>
-    <script src="js/print.js"></script>
+    <!-- app.js harus load duluan karena print.js bergantung pada transaksiData & showToast -->
+    <script src="app.js"></script>
+    <script src="print.js"></script>
 </body>
 </html>
