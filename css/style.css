@@ -402,3 +402,23 @@ select {
     .total-display .amount { font-size:26px; }
     .status-omset .number  { font-size:12px; }
 }
+
+/* ── TOMBOL EDIT ORDER ── */
+.btn-edit-order {
+    flex: 1;
+    padding: 7px 10px;
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: 'Nunito', sans-serif;
+    transition: transform 0.15s, opacity 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+}
+.btn-edit-order:active { transform: scale(0.97); }
