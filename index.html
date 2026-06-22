@@ -311,9 +311,9 @@ header{background:var(--accent);color:white;padding:0 16px;height:56px;display:f
 
 /* Layanan editor */
 .service-list{display:flex;flex-direction:column;gap:7px}
-.service-row{display:grid;grid-template-columns:2.5rem 1fr 1fr auto;gap:7px;align-items:center}
-.service-row input{padding:6px 10px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:'Nunito',sans-serif;font-size:.83rem;background:var(--bg);outline:none;transition:border-color .2s}
-.service-row input:focus{border-color:var(--accent)}
+.service-row{display:grid;grid-template-columns:2.5rem 1fr 1fr 1fr auto;gap:7px;align-items:center}
+.service-row input,.service-row select{padding:6px 10px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:'Nunito',sans-serif;font-size:.83rem;background:var(--bg);outline:none;transition:border-color .2s}
+.service-row input:focus,.service-row select:focus{border-color:var(--accent)}
 .service-row .icon-inp{text-align:center;font-size:1rem}
 /* Icon Picker */
 .icon-pick-btn{width:2.5rem;height:2.5rem;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:var(--bg);font-size:1.3rem;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center}
@@ -332,7 +332,7 @@ header{background:var(--accent);color:white;padding:0 16px;height:56px;display:f
 .del-svc-btn:hover{color:var(--danger)}
 .add-svc-btn{background:var(--accent2);color:var(--accent3);border:2px dashed var(--accent);border-radius:var(--radius-sm);padding:8px;font-family:'Nunito',sans-serif;font-weight:700;font-size:.82rem;cursor:pointer;transition:all .2s;width:100%}
 .add-svc-btn:hover{background:var(--accent);color:white}
-.svc-header{display:grid;grid-template-columns:2.5rem 1fr 1fr auto;gap:7px;padding:0 2px}
+.svc-header{display:grid;grid-template-columns:2.5rem 1fr 1fr 1fr auto;gap:7px;padding:0 2px}
 .svc-header span{font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:var(--text3)}
 
 @media(max-width:680px){
@@ -523,7 +523,7 @@ header{background:var(--accent);color:white;padding:0 16px;height:56px;display:f
     <div class="set-section">
       <div class="set-section-title">🧺 Edit Layanan & Harga</div>
       <div class="svc-header">
-        <span>Icon</span><span>Nama Layanan</span><span>Harga (Rp)</span><span></span>
+        <span>Icon</span><span>Nama Layanan</span><span>Kategori</span><span>Harga (Rp)</span><span></span>
       </div>
       <div class="service-list" id="serviceList"></div>
       <button class="add-svc-btn" onclick="addService()">+ Tambah Layanan</button>
@@ -1335,6 +1335,7 @@ function renderPengaturan(){
   document.getElementById('set-ai-url').value=aiConfig.url||'https://ai.sumopod.com';
   document.getElementById('set-ai-key').value=aiConfig.key||'';
   document.getElementById('set-ai-model').value=aiConfig.model||'gpt-4.1-nano';
+  buildCategories();
   renderServiceList();
 }
 
@@ -1384,10 +1385,15 @@ let iconPickerTargetIdx = null;
 
 function renderServiceList(){
   const el=document.getElementById('serviceList');
+  const categoryOptions = (selected) => {
+    const list = [...new Set((categories||[]).filter(c => c !== 'Semua').concat(selected || []).filter(Boolean))];
+    return list.map(c => `<option value="${c}" ${c === selected ? 'selected' : ''}>${c}</option>`).join('');
+  };
   el.innerHTML=products.map((p,i)=>`
     <div class="service-row">
       <button class="icon-pick-btn" onclick="bukaIconPicker(${i},this)" title="Klik untuk pilih icon">${p.icon}</button>
       <input type="text" value="${p.name}" onchange="products[${i}].name=this.value" placeholder="Nama layanan">
+      <select onchange="products[${i}].cat=this.value">${categoryOptions(p.cat)}</select>
       <input type="number" value="${p.price}" onchange="products[${i}].price=parseInt(this.value)||0" placeholder="Harga">
       <button class="del-svc-btn" onclick="deleteService(${i})">🗑</button>
     </div>`).join('');
@@ -1417,7 +1423,8 @@ function pilihIcon(emoji) {
   renderServiceList();
 }
 function addService(){
-  products.push({id:Date.now(),name:'Layanan Baru',cat:'Tambahan',icon:'✨',price:10000,unit:'per item',perKg:false});
+  products.push({id:Date.now(),name:'Layanan Baru',cat:(categories.find(c=>c!=='Semua')||'Tambahan'),icon:'✨',price:10000,unit:'per item',perKg:false});
+  buildCategories();
   renderServiceList();
 }
 function deleteService(i){
